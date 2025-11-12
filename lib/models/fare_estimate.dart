@@ -26,7 +26,7 @@ class FareEstimate {
   });
 
   factory FareEstimate.fromJson(Map<String, dynamic> json) {
-    // Parse distance - handle both string and number
+    // Parse distance - handle both string ("28.23 miles") and number
     double parseDistance(dynamic value) {
       if (value == null) return 0.0;
       if (value is num) return value.toDouble();
@@ -49,39 +49,30 @@ class FareEstimate {
       return 0.0;
     }
 
-    // Parse duration - use duration_in_sec if available, otherwise parse string
-    double parseDuration(Map<String, dynamic> json) {
-      // Prefer duration_in_sec (in seconds, convert to minutes)
-      if (json['duration_in_sec'] != null) {
-        final seconds = (json['duration_in_sec'] as num).toDouble();
-        return seconds / 60.0; // Convert to minutes
-      }
+    // Parse duration - handle both string ("42 minutes") and number
+    double parseDuration(dynamic value) {
+      if (value == null) return 0.0;
+      if (value is num) return value.toDouble();
 
-      // Fallback to duration_min
-      if (json['duration_min'] != null) {
-        return (json['duration_min'] as num).toDouble();
-      }
+      if (value is String) {
+        // Handle "42 minutes" format
+        final minutesMatch = RegExp(r'(\d+)\s*minutes?').firstMatch(value);
+        if (minutesMatch != null) {
+          return double.parse(minutesMatch.group(1)!);
+        }
 
-      // Last resort: try to parse duration string like "1 hours 8 minutes"
-      if (json['duration'] != null && json['duration'] is String) {
-        final durationStr = json['duration'] as String;
+        // Handle "1 hours 8 minutes" format
         double totalMinutes = 0.0;
-
-        // Extract hours
-        final hoursMatch = RegExp(r'(\d+)\s*hours?').firstMatch(durationStr);
+        final hoursMatch = RegExp(r'(\d+)\s*hours?').firstMatch(value);
         if (hoursMatch != null) {
           totalMinutes += double.parse(hoursMatch.group(1)!) * 60;
         }
-
-        // Extract minutes
-        final minutesMatch = RegExp(
-          r'(\d+)\s*minutes?',
-        ).firstMatch(durationStr);
-        if (minutesMatch != null) {
-          totalMinutes += double.parse(minutesMatch.group(1)!);
+        final minsMatch = RegExp(r'(\d+)\s*minutes?').firstMatch(value);
+        if (minsMatch != null) {
+          totalMinutes += double.parse(minsMatch.group(1)!);
         }
 
-        return totalMinutes;
+        return totalMinutes > 0 ? totalMinutes : 0.0;
       }
 
       return 0.0;
@@ -90,14 +81,10 @@ class FareEstimate {
     return FareEstimate(
       fleetId: json['fleet_id'] as String?,
       fleetType: json['fleet_type'] as String?,
-      totalPrice: parsePrice(
-        json['total_price'] ?? json['fare'] ?? json['total_fare'],
-      ),
-      distanceInMiles: parseDistance(
-        json['distance_in_miles'] ?? json['distance_mi'],
-      ),
-      duration: parseDuration(json),
-      currency: json['currency'] ?? 'GBP',
+      totalPrice: parsePrice(json['total_price']),
+      distanceInMiles: parseDistance(json['distance']),
+      duration: parseDuration(json['duration']),
+      currency: json['currency'] ?? 'USD',
       breakdown: json['breakdown'] as Map<String, dynamic>?,
       baseFare: parsePrice(json['base_fare']),
       distanceFare: parsePrice(json['distance_fare']),

@@ -70,13 +70,9 @@ class FareService {
       );
 
       // Backend returns array of fare estimates
-      if (response is List) {
-        return response
-            .map((item) => FareEstimate.fromJson(item as Map<String, dynamic>))
-            .toList();
-      } else {
-        throw Exception('Expected List response from fare calculation API');
-      }
+      return response
+          .map((item) => FareEstimate.fromJson(item as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       print('Fare calculation error: $e');
       rethrow;
@@ -143,13 +139,9 @@ class FareService {
       );
 
       // Backend returns array of fare estimates
-      if (response is List) {
-        return response
-            .map((item) => FareEstimate.fromJson(item as Map<String, dynamic>))
-            .toList();
-      } else {
-        throw Exception('Expected List response from fare calculation API');
-      }
+      return response
+          .map((item) => FareEstimate.fromJson(item as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       print('Fare calculation error: $e');
       rethrow;

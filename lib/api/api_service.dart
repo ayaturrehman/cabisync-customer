@@ -135,4 +135,62 @@ class ApiService {
       throw Exception('Password reset error: $e');
     }
   }
+
+  // Calculate fare for a ride
+  static Future<List<dynamic>> calculateFare({
+    required String authToken,
+    required String bookingTime,
+    required String scheduleType,
+    required List<Map<String, dynamic>> locations,
+    double? distanceMi,
+    double? durationMin,
+    String? fleetId,
+  }) async {
+    try {
+      final body = <String, dynamic>{
+        'booking_time': bookingTime,
+        'schedule_type': scheduleType,
+        'locations': locations,
+      };
+
+      if (distanceMi != null) body['distance_mi'] = distanceMi;
+      if (durationMin != null) body['duration_min'] = durationMin;
+      if (fleetId != null) body['fleet_id'] = fleetId;
+
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/fare/calc'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $authToken',
+            },
+            body: jsonEncode(body),
+          )
+          .timeout(
+            const Duration(seconds: 30),
+            onTimeout: () {
+              throw Exception(
+                'Connection timeout. Please check your internet connection.',
+              );
+            },
+          );
+
+      print('Fare Calc Response Status: ${response.statusCode}');
+      print('Fare Calc Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data is List) {
+          return data;
+        } else {
+          throw Exception('Expected array response from fare calculation API');
+        }
+      } else {
+        throw Exception('Fare calculation failed: ${response.body}');
+      }
+    } catch (e) {
+      print('Fare Calculation Exception: $e');
+      throw Exception('Fare calculation error: $e');
+    }
+  }
 }

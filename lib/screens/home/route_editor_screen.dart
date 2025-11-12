@@ -279,6 +279,11 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
             (_) => RideBookingScreen(
               pickupLocation: _pickupLocation!.address,
               destinationLocation: destination,
+              pickupLat: _pickupLocation!.lat ?? 0.0,
+              pickupLng: _pickupLocation!.lng ?? 0.0,
+              dropLat: _destinationLocation!.lat ?? 0.0,
+              dropLng: _destinationLocation!.lng ?? 0.0,
+              scheduledTime: _scheduledDateTime,
             ),
       ),
     );
