@@ -299,11 +299,10 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
       dateStr = '${dateTime.day}/${dateTime.month}';
     }
 
-    final hour = dateTime.hour > 12 ? dateTime.hour - 12 : dateTime.hour;
-    final period = dateTime.hour >= 12 ? 'PM' : 'AM';
+    final hour = dateTime.hour;
     final minute = dateTime.minute.toString().padLeft(2, '0');
 
-    return '$dateStr at $hour:$minute $period';
+    return '$dateStr at $hour:$minute';
   }
 
   @override
@@ -737,367 +736,6 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
   }
 }
 
-// Bottom sheet for scheduling pickup time
-class _ScheduleTimeSheet extends StatefulWidget {
-  final DateTime? initialDateTime;
-
-  const _ScheduleTimeSheet({this.initialDateTime});
-
-  @override
-  State<_ScheduleTimeSheet> createState() => _ScheduleTimeSheetState();
-}
-
-class _ScheduleTimeSheetState extends State<_ScheduleTimeSheet> {
-  late DateTime selectedDate;
-  late DateTime selectedTime;
-  final ScrollController _scrollController = ScrollController();
-
-  @override
-  void initState() {
-    super.initState();
-    final now = DateTime.now();
-    // Minimum 30 minutes from now
-    final minimumTime = now.add(const Duration(minutes: 30));
-
-    // Round to next 5-minute interval
-    final roundedMinutes = ((minimumTime.minute / 5).ceil() * 5) % 60;
-    final hourAdjustment = (minimumTime.minute / 5).ceil() * 5 >= 60 ? 1 : 0;
-
-    final defaultTime = DateTime(
-      minimumTime.year,
-      minimumTime.month,
-      minimumTime.day,
-      minimumTime.hour + hourAdjustment,
-      roundedMinutes,
-    );
-
-    if (widget.initialDateTime != null &&
-        widget.initialDateTime!.isAfter(defaultTime)) {
-      selectedDate = widget.initialDateTime!;
-      selectedTime = widget.initialDateTime!;
-    } else {
-      selectedDate = defaultTime;
-      selectedTime = defaultTime;
-    }
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  List<DateTime> _generateTimeSlots() {
-    final now = DateTime.now();
-    final minimumTime = now.add(const Duration(minutes: 30));
-    final slots = <DateTime>[];
-
-    // Start from 00:00 of selected date
-    DateTime currentSlot = DateTime(
-      selectedDate.year,
-      selectedDate.month,
-      selectedDate.day,
-    );
-
-    // Generate 5-minute intervals for the whole day
-    while (currentSlot.day == selectedDate.day) {
-      // Only add if it's after minimum time (30 mins from now)
-      if (currentSlot.isAfter(minimumTime) ||
-          currentSlot.isAtSameMomentAs(minimumTime)) {
-        slots.add(currentSlot);
-      }
-      currentSlot = currentSlot.add(const Duration(minutes: 5));
-    }
-
-    return slots;
-  }
-
-  String _formatTime(DateTime time) {
-    final hour =
-        time.hour > 12 ? time.hour - 12 : (time.hour == 0 ? 12 : time.hour);
-    final period = time.hour >= 12 ? 'PM' : 'AM';
-    final minute = time.minute.toString().padLeft(2, '0');
-    return '$hour:$minute $period';
-  }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final tomorrow = today.add(const Duration(days: 1));
-    final targetDate = DateTime(date.year, date.month, date.day);
-
-    if (targetDate == today) return 'Today';
-    if (targetDate == tomorrow) return 'Tomorrow';
-
-    final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return '${months[date.month - 1]} ${date.day}';
-  }
-
-  List<DateTime> _generateDateOptions() {
-    final now = DateTime.now();
-    final dates = <DateTime>[];
-
-    for (int i = 0; i < 7; i++) {
-      dates.add(DateTime(now.year, now.month, now.day).add(Duration(days: i)));
-    }
-
-    return dates;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final timeSlots = _generateTimeSlots();
-    final dateOptions = _generateDateOptions();
-
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.7,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: AppColors.border.withOpacity(0.2)),
-              ),
-            ),
-            child: Row(
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                const Expanded(
-                  child: Text(
-                    'Schedule pickup',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      selectedTime = DateTime.now();
-                    });
-                    Navigator.pop(context);
-                  },
-                  child: const Text(
-                    'Now',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Date selector
-          Container(
-            height: 80,
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              itemCount: dateOptions.length,
-              itemBuilder: (context, index) {
-                final date = dateOptions[index];
-                final isSelected =
-                    DateTime(
-                      selectedDate.year,
-                      selectedDate.month,
-                      selectedDate.day,
-                    ) ==
-                    DateTime(date.year, date.month, date.day);
-
-                return Padding(
-                  padding: const EdgeInsets.only(right: AppSpacing.sm),
-                  child: InkWell(
-                    onTap: () {
-                      setState(() {
-                        selectedDate = date;
-                        // Reset time to first available slot
-                        final newSlots = _generateTimeSlots();
-                        if (newSlots.isNotEmpty) {
-                          selectedTime = newSlots.first;
-                        }
-                      });
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      width: 70,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sm,
-                        vertical: AppSpacing.xs,
-                      ),
-                      decoration: BoxDecoration(
-                        color:
-                            isSelected ? AppColors.primary : AppColors.surface,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            _formatDate(date),
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color:
-                                  isSelected
-                                      ? AppColors.white
-                                      : AppColors.textSecondary,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            date.day.toString(),
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              color:
-                                  isSelected
-                                      ? AppColors.white
-                                      : AppColors.black,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-
-          // Time slots
-          Expanded(
-            child:
-                timeSlots.isEmpty
-                    ? const Center(
-                      child: Text(
-                        'No available time slots for this date',
-                        style: TextStyle(color: AppColors.textSecondary),
-                      ),
-                    )
-                    : ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: AppSpacing.sm,
-                      ),
-                      itemCount: timeSlots.length,
-                      itemBuilder: (context, index) {
-                        final time = timeSlots[index];
-                        final isSelected =
-                            selectedTime.hour == time.hour &&
-                            selectedTime.minute == time.minute &&
-                            DateTime(
-                                  selectedTime.year,
-                                  selectedTime.month,
-                                  selectedTime.day,
-                                ) ==
-                                DateTime(time.year, time.month, time.day);
-
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-                          child: InkWell(
-                            onTap: () {
-                              setState(() {
-                                selectedTime = time;
-                              });
-                            },
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.md,
-                                vertical: AppSpacing.md,
-                              ),
-                              decoration: BoxDecoration(
-                                color:
-                                    isSelected
-                                        ? AppColors.primary.withOpacity(0.1)
-                                        : AppColors.surface,
-                                borderRadius: BorderRadius.circular(12),
-                                border:
-                                    isSelected
-                                        ? Border.all(
-                                          color: AppColors.primary,
-                                          width: 2,
-                                        )
-                                        : null,
-                              ),
-                              child: Text(
-                                _formatTime(time),
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight:
-                                      isSelected
-                                          ? FontWeight.w600
-                                          : FontWeight.w500,
-                                  color:
-                                      isSelected
-                                          ? AppColors.primary
-                                          : AppColors.black,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-          ),
-
-          // Confirm button
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, -5),
-                ),
-              ],
-            ),
-            child: CustomButton(
-              text: 'Confirm',
-              onPressed: () {
-                Navigator.pop(context, selectedTime);
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 // Bottom sheet for adding a stop
 class _StopInputSheet extends StatefulWidget {
   final Function(LocationItem) onStopAdded;
@@ -1228,6 +866,415 @@ class _StopInputSheetState extends State<_StopInputSheet> {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ScheduleTimeSheet extends StatefulWidget {
+  final DateTime? initialDateTime;
+
+  const _ScheduleTimeSheet({this.initialDateTime});
+
+  @override
+  State<_ScheduleTimeSheet> createState() => _ScheduleTimeSheetState();
+}
+
+class _ScheduleTimeSheetState extends State<_ScheduleTimeSheet> {
+  late DateTime selectedDate;
+  late int selectedHour;
+  late int selectedMinute;
+  late FixedExtentScrollController hourController;
+  late FixedExtentScrollController minuteController;
+
+  // Available minutes in 5-minute intervals
+  final List<int> availableMinutes = [
+    0,
+    5,
+    10,
+    15,
+    20,
+    25,
+    30,
+    35,
+    40,
+    45,
+    50,
+    55,
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Calculate minimum selectable time (current time + 30 minutes)
+    final minimumTime = DateTime.now().add(const Duration(minutes: 30));
+
+    // Round up to the next 5-minute interval
+    final roundedMinute = ((minimumTime.minute / 5).ceil() * 5) % 60;
+    final adjustedTime = DateTime(
+      minimumTime.year,
+      minimumTime.month,
+      minimumTime.day,
+      roundedMinute == 0 && minimumTime.minute > 0
+          ? minimumTime.hour + 1
+          : minimumTime.hour,
+      roundedMinute,
+    );
+
+    // Initialize with adjusted time or provided initial time (whichever is later)
+    final initialTime =
+        widget.initialDateTime != null &&
+                widget.initialDateTime!.isAfter(adjustedTime)
+            ? widget.initialDateTime!
+            : adjustedTime;
+
+    selectedDate = DateTime(
+      initialTime.year,
+      initialTime.month,
+      initialTime.day,
+    );
+    selectedHour = initialTime.hour;
+    selectedMinute = initialTime.minute;
+
+    // Ensure selected minute is in 5-minute intervals
+    if (!availableMinutes.contains(selectedMinute)) {
+      selectedMinute = availableMinutes.firstWhere(
+        (m) => m >= selectedMinute,
+        orElse: () => availableMinutes.first,
+      );
+    }
+
+    hourController = FixedExtentScrollController(initialItem: selectedHour);
+    minuteController = FixedExtentScrollController(
+      initialItem: availableMinutes.indexOf(selectedMinute),
+    );
+  }
+
+  @override
+  void dispose() {
+    hourController.dispose();
+    minuteController.dispose();
+    super.dispose();
+  }
+
+  DateTime get selectedDateTime => DateTime(
+    selectedDate.year,
+    selectedDate.month,
+    selectedDate.day,
+    selectedHour,
+    selectedMinute,
+  );
+
+  bool isValidTime() {
+    final minimumTime = DateTime.now().add(const Duration(minutes: 30));
+    return selectedDateTime.isAfter(minimumTime) ||
+        selectedDateTime.isAtSameMomentAs(minimumTime);
+  }
+
+  void _adjustTimeIfNeeded() {
+    if (!isValidTime()) {
+      final minimumTime = DateTime.now().add(const Duration(minutes: 30));
+      final roundedMinute = ((minimumTime.minute / 5).ceil() * 5) % 60;
+
+      setState(() {
+        selectedHour =
+            roundedMinute == 0 && minimumTime.minute > 0
+                ? minimumTime.hour + 1
+                : minimumTime.hour;
+        selectedMinute = roundedMinute;
+        hourController.jumpToItem(selectedHour);
+        minuteController.jumpToItem(availableMinutes.indexOf(selectedMinute));
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.6,
+      decoration: const BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        children: [
+          // Header with Cancel and Now buttons
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: AppColors.border.withOpacity(0.2)),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel', style: TextStyle(fontSize: 16)),
+                ),
+                const Text(
+                  'Schedule Time',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, null),
+                  child: const Text('Now', style: TextStyle(fontSize: 16)),
+                ),
+              ],
+            ),
+          ),
+
+          // Date selector (scrollable, up to 21 days)
+          Container(
+            height: 90,
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              itemCount: 21, // 21 days advance booking
+              itemBuilder: (context, index) {
+                final date = today.add(Duration(days: index));
+                final isSelected =
+                    selectedDate.year == date.year &&
+                    selectedDate.month == date.month &&
+                    selectedDate.day == date.day;
+
+                String label;
+                if (index == 0) {
+                  label = 'Today';
+                } else if (index == 1) {
+                  label = 'Tomorrow';
+                } else {
+                  final weekdays = [
+                    'Mon',
+                    'Tue',
+                    'Wed',
+                    'Thu',
+                    'Fri',
+                    'Sat',
+                    'Sun',
+                  ];
+                  label = weekdays[date.weekday - 1];
+                }
+
+                final months = [
+                  'Jan',
+                  'Feb',
+                  'Mar',
+                  'Apr',
+                  'May',
+                  'Jun',
+                  'Jul',
+                  'Aug',
+                  'Sep',
+                  'Oct',
+                  'Nov',
+                  'Dec',
+                ];
+
+                return Padding(
+                  padding: const EdgeInsets.only(right: AppSpacing.sm),
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        selectedDate = date;
+                        _adjustTimeIfNeeded();
+                      });
+                    },
+                    child: Container(
+                      width: 70,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xs,
+                        vertical: AppSpacing.xs,
+                      ),
+                      decoration: BoxDecoration(
+                        color:
+                            isSelected
+                                ? AppColors.primary
+                                : AppColors.background,
+                        borderRadius: BorderRadius.circular(AppBorderRadius.md),
+                        border: Border.all(
+                          color:
+                              isSelected ? AppColors.primary : AppColors.border,
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            label,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color:
+                                  isSelected
+                                      ? AppColors.white
+                                      : AppColors.textSecondary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            date.day.toString(),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color:
+                                  isSelected
+                                      ? AppColors.white
+                                      : AppColors.black,
+                            ),
+                          ),
+                          const SizedBox(height: 1),
+                          Text(
+                            months[date.month - 1],
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w500,
+                              color:
+                                  isSelected
+                                      ? AppColors.white
+                                      : AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+
+          // Time picker wheels
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Hour picker
+                Expanded(
+                  child: ListWheelScrollView.useDelegate(
+                    controller: hourController,
+                    itemExtent: 50,
+                    perspective: 0.005,
+                    diameterRatio: 1.2,
+                    physics: const FixedExtentScrollPhysics(),
+                    onSelectedItemChanged: (index) {
+                      setState(() {
+                        selectedHour = index;
+                        _adjustTimeIfNeeded();
+                      });
+                    },
+                    childDelegate: ListWheelChildBuilderDelegate(
+                      builder: (context, index) {
+                        if (index < 0 || index > 23) return null;
+                        return Center(
+                          child: Text(
+                            index.toString().padLeft(2, '0'),
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight:
+                                  index == selectedHour
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                              color:
+                                  index == selectedHour
+                                      ? AppColors.black
+                                      : AppColors.textSecondary,
+                            ),
+                          ),
+                        );
+                      },
+                      childCount: 24,
+                    ),
+                  ),
+                ),
+                const Text(
+                  ':',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                // Minute picker
+                Expanded(
+                  child: ListWheelScrollView.useDelegate(
+                    controller: minuteController,
+                    itemExtent: 50,
+                    perspective: 0.005,
+                    diameterRatio: 1.2,
+                    physics: const FixedExtentScrollPhysics(),
+                    onSelectedItemChanged: (index) {
+                      setState(() {
+                        selectedMinute = availableMinutes[index];
+                        _adjustTimeIfNeeded();
+                      });
+                    },
+                    childDelegate: ListWheelChildBuilderDelegate(
+                      builder: (context, index) {
+                        if (index < 0 || index >= availableMinutes.length)
+                          return null;
+                        final minute = availableMinutes[index];
+                        return Center(
+                          child: Text(
+                            minute.toString().padLeft(2, '0'),
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight:
+                                  minute == selectedMinute
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                              color:
+                                  minute == selectedMinute
+                                      ? AppColors.black
+                                      : AppColors.textSecondary,
+                            ),
+                          ),
+                        );
+                      },
+                      childCount: availableMinutes.length,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Confirm button
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed:
+                    isValidTime()
+                        ? () => Navigator.pop(context, selectedDateTime)
+                        : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppBorderRadius.md),
+                  ),
+                  disabledBackgroundColor: AppColors.textSecondary.withOpacity(
+                    0.3,
+                  ),
+                ),
+                child: Text(
+                  isValidTime() ? 'Confirm' : 'Select time',
+                  style: const TextStyle(fontSize: 16, color: AppColors.white),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
