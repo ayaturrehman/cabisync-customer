@@ -22,12 +22,14 @@ class PlaceDetail {
 }
 
 typedef OnChanged = void Function(String value);
+typedef OnPlaceSelected = void Function(PlaceDetail place);
 
 class PlaceAutocompleteInput extends StatelessWidget {
   final String label;
   final TextEditingController controller;
   final FocusNode? focusNode;
   final OnChanged? onChanged;
+  final OnPlaceSelected? onPlaceSelected;
 
   const PlaceAutocompleteInput({
     super.key,
@@ -35,6 +37,7 @@ class PlaceAutocompleteInput extends StatelessWidget {
     this.focusNode,
     this.label = 'Enter location',
     this.onChanged,
+    this.onPlaceSelected,
   });
 
   @override
@@ -57,6 +60,13 @@ class PlaceAutocompleteInput extends StatelessWidget {
                 : null,
       ),
       onChanged: onChanged,
+      onSubmitted: (value) {
+        // Provide a minimal place-selected behaviour when user submits text.
+        // This allows callers (like LocationPickerScreen) to receive a PlaceDetail
+        // even if a full autocomplete implementation isn't present.
+        if (value.trim().isEmpty) return;
+        onPlaceSelected?.call(PlaceDetail(name: value, address: value));
+      },
     );
   }
 }
