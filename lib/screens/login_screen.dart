@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/primary_button.dart';
+import 'home/map_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -49,10 +50,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   if (!mounted) return;
 
                   if (success) {
+                    if (!mounted) return;
+
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("Login successful")),
                     );
-                    Navigator.of(context).pushReplacementNamed('/booking');
+
+                    // Navigate to home screen using MaterialPageRoute
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(
+                        builder: (context) => const MapScreen(),
+                      ),
+                    );
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(

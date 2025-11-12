@@ -2,18 +2,52 @@
 import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../api/api_service.dart';
+import '../services/storage_service.dart';
 
 class AuthProvider with ChangeNotifier {
   User? _user;
   String? _token;
   bool _isLoading = false;
   String? _errorMessage;
+  bool _isInitialized = false;
 
   User? get user => _user;
   String? get token => _token;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get isAuthenticated => _user != null && _token != null;
+  bool get isInitialized => _isInitialized;
+
+  // Initialize - Load saved auth data
+  Future<void> initialize() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final token = await StorageService.getToken();
+      final userData = await StorageService.getUserData();
+
+      if (token != null && userData != null) {
+        _token = token;
+        _user = User(
+          id: userData['id'],
+          name: userData['name'],
+          email: userData['email'],
+          phone: userData['phone'],
+          createdAt:
+              userData['created_at'] != null
+                  ? DateTime.parse(userData['created_at'])
+                  : DateTime.now(),
+        );
+      }
+    } catch (e) {
+      print('Error initializing auth: $e');
+    } finally {
+      _isLoading = false;
+      _isInitialized = true;
+      notifyListeners();
+    }
+  }
 
   // Login with email and password
   Future<bool> login(String email, String password) async {
@@ -45,6 +79,16 @@ class AuthProvider with ChangeNotifier {
             userData['created_at'] != null
                 ? DateTime.parse(userData['created_at'])
                 : DateTime.now(),
+      );
+
+      // Save to secure storage
+      await StorageService.saveToken(_token!);
+      await StorageService.saveUserData(
+        id: _user!.id,
+        name: _user!.name,
+        email: _user!.email,
+        phone: _user!.phone,
+        createdAt: _user!.createdAt,
       );
 
       _isLoading = false;
@@ -88,6 +132,16 @@ class AuthProvider with ChangeNotifier {
             userData['created_at'] != null
                 ? DateTime.parse(userData['created_at'])
                 : DateTime.now(),
+      );
+
+      // Save to secure storage
+      await StorageService.saveToken(_token!);
+      await StorageService.saveUserData(
+        id: _user!.id,
+        name: _user!.name,
+        email: _user!.email,
+        phone: _user!.phone,
+        createdAt: _user!.createdAt,
       );
 
       _isLoading = false;
@@ -147,10 +201,14 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  void logout() {
+  void logout() async {
     _user = null;
     _token = null;
     _errorMessage = null;
+
+    // Clear stored data
+    await StorageService.clearAll();
+
     notifyListeners();
   }
 

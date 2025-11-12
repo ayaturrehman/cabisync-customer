@@ -47,7 +47,8 @@ class PlaceDetails {
       name: json['name'] ?? '',
       formattedAddress: json['formatted_address'] ?? '',
       latitude: location != null ? (location['lat'] as num?)?.toDouble() : null,
-      longitude: location != null ? (location['lng'] as num?)?.toDouble() : null,
+      longitude:
+          location != null ? (location['lng'] as num?)?.toDouble() : null,
     );
   }
 }
@@ -65,24 +66,38 @@ class GooglePlacesService {
         '$_baseUrl/place/autocomplete/json?input=$input&key=$_apiKey&components=country:gb',
       );
 
-      final response = await http.get(url).timeout(
-        const Duration(seconds: 10),
-        onTimeout: () {
-          throw Exception('Request timeout');
-        },
-      );
+      print('GooglePlaces: Requesting URL: $url');
+
+      final response = await http
+          .get(url)
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              throw Exception('Request timeout');
+            },
+          );
+
+      print('GooglePlaces: Response status: ${response.statusCode}');
+      print('GooglePlaces: Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        
+
         if (data['status'] == 'OK') {
-          final predictions = (data['predictions'] as List)
-              .map((json) => PlacePrediction.fromJson(json))
-              .toList();
+          final predictions =
+              (data['predictions'] as List)
+                  .map((json) => PlacePrediction.fromJson(json))
+                  .toList();
+          print('GooglePlaces: Parsed ${predictions.length} predictions');
           return predictions;
         } else if (data['status'] == 'ZERO_RESULTS') {
+          print('GooglePlaces: Zero results for query');
           return [];
         } else {
+          print('GooglePlaces: API error status: ${data['status']}');
+          if (data['error_message'] != null) {
+            print('GooglePlaces: Error message: ${data['error_message']}');
+          }
           throw Exception('Places API error: ${data['status']}');
         }
       } else {
@@ -101,23 +116,27 @@ class GooglePlacesService {
         '$_baseUrl/place/details/json?place_id=$placeId&key=$_apiKey&fields=place_id,name,formatted_address,geometry',
       );
 
-      final response = await http.get(url).timeout(
-        const Duration(seconds: 10),
-        onTimeout: () {
-          throw Exception('Request timeout');
-        },
-      );
+      final response = await http
+          .get(url)
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              throw Exception('Request timeout');
+            },
+          );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        
+
         if (data['status'] == 'OK') {
           return PlaceDetails.fromJson(data['result']);
         } else {
           throw Exception('Place details error: ${data['status']}');
         }
       } else {
-        throw Exception('Failed to fetch place details: ${response.statusCode}');
+        throw Exception(
+          'Failed to fetch place details: ${response.statusCode}',
+        );
       }
     } catch (e) {
       print('Error fetching place details: $e');
@@ -132,16 +151,18 @@ class GooglePlacesService {
         '$_baseUrl/geocode/json?latlng=$lat,$lng&key=$_apiKey',
       );
 
-      final response = await http.get(url).timeout(
-        const Duration(seconds: 10),
-        onTimeout: () {
-          throw Exception('Request timeout');
-        },
-      );
+      final response = await http
+          .get(url)
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              throw Exception('Request timeout');
+            },
+          );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        
+
         if (data['status'] == 'OK' && data['results'].isNotEmpty) {
           final result = data['results'][0];
           return PlaceDetails.fromJson(result);

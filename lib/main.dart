@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'config/theme.dart';
 import 'screens/splash_screen.dart';
+import 'screens/home/map_screen.dart';
 import 'providers/auth_provider.dart';
 
 void main() {
@@ -32,6 +33,7 @@ class CabiSyncApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         home: const SplashScreen(),
+        routes: {'/home': (context) => const MapScreen()},
       ),
     );
   }
