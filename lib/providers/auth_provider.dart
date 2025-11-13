@@ -1,5 +1,6 @@
 // lib/providers/auth_provider.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import '../models/user.dart';
 import '../api/api_service.dart';
 import '../services/storage_service.dart';
@@ -21,7 +22,10 @@ class AuthProvider with ChangeNotifier {
   // Initialize - Load saved auth data
   Future<void> initialize() async {
     _isLoading = true;
-    notifyListeners();
+    // Schedule notification for after the current frame
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
 
     try {
       final token = await StorageService.getToken();
@@ -45,7 +49,10 @@ class AuthProvider with ChangeNotifier {
     } finally {
       _isLoading = false;
       _isInitialized = true;
-      notifyListeners();
+      // Schedule notification for after the current frame
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+      });
     }
   }
 

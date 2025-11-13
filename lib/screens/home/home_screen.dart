@@ -23,41 +23,49 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          border: Border(
-            top: BorderSide(color: AppColors.border, width: 1),
+      body: IndexedStack(index: _currentIndex, children: _screens),
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            border: Border(top: BorderSide(color: AppColors.border, width: 1)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
           ),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) => setState(() => _currentIndex = index),
-          backgroundColor: AppColors.white,
-          selectedItemColor: AppColors.white,
-          unselectedItemColor: AppColors.black,
-          type: BottomNavigationBarType.fixed,
-          elevation: 0,
-          items: [
-            BottomNavigationBarItem(
-              icon: _buildNavIcon(Icons.home_outlined, 0),
-              activeIcon: _buildNavIcon(Icons.home, 0, isActive: true),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: _buildNavIcon(Icons.history_outlined, 1),
-              activeIcon: _buildNavIcon(Icons.history, 1, isActive: true),
-              label: 'Rides',
-            ),
-            BottomNavigationBarItem(
-              icon: _buildNavIcon(Icons.person_outline, 2),
-              activeIcon: _buildNavIcon(Icons.person, 2, isActive: true),
-              label: 'Profile',
-            ),
-          ],
+          child: BottomNavigationBar(
+            currentIndex: _currentIndex,
+            onTap: (index) {
+              print('Bottom nav tapped: $index');
+              setState(() => _currentIndex = index);
+            },
+            backgroundColor: AppColors.white,
+            selectedItemColor: AppColors.white,
+            unselectedItemColor: AppColors.black,
+            type: BottomNavigationBarType.fixed,
+            elevation: 0,
+            items: [
+              BottomNavigationBarItem(
+                icon: _buildNavIcon(Icons.home_outlined, 0),
+                activeIcon: _buildNavIcon(Icons.home, 0, isActive: true),
+                label: 'Home',
+              ),
+              BottomNavigationBarItem(
+                icon: _buildNavIcon(Icons.history_outlined, 1),
+                activeIcon: _buildNavIcon(Icons.history, 1, isActive: true),
+                label: 'Rides',
+              ),
+              BottomNavigationBarItem(
+                icon: _buildNavIcon(Icons.person_outline, 2),
+                activeIcon: _buildNavIcon(Icons.person, 2, isActive: true),
+                label: 'Profile',
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -70,10 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
         color: isActive ? AppColors.black : Colors.transparent,
         borderRadius: BorderRadius.circular(AppBorderRadius.sm),
       ),
-      child: Icon(
-        icon,
-        color: isActive ? AppColors.white : AppColors.black,
-      ),
+      child: Icon(icon, color: isActive ? AppColors.white : AppColors.black),
     );
   }
 }

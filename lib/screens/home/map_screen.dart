@@ -4,6 +4,8 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../config/theme.dart';
 import 'route_editor_screen.dart';
+import '../booking/ride_history_screen.dart';
+import '../profile/profile_screen.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -16,6 +18,7 @@ class _MapScreenState extends State<MapScreen> {
   GoogleMapController? _mapController;
   Position? _currentPosition;
   bool _isLoadingLocation = true;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   static const CameraPosition _defaultPosition = CameraPosition(
     target: LatLng(51.5074, -0.1278), // London default
@@ -94,9 +97,110 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+  Widget _buildDrawer(BuildContext context) {
+    return Drawer(
+      child: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              decoration: BoxDecoration(color: AppColors.black),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: AppColors.white,
+                    child: Icon(Icons.person, size: 32, color: AppColors.black),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Welcome back!',
+                          style: TextStyle(
+                            color: AppColors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Manage your account',
+                          style: TextStyle(
+                            color: AppColors.white.withOpacity(0.8),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                children: [
+                  ListTile(
+                    leading: Icon(Icons.home, color: AppColors.black),
+                    title: const Text('Home'),
+                    onTap: () => Navigator.pop(context),
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.history, color: AppColors.black),
+                    title: const Text('Ride History'),
+                    trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const RideHistoryScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.person, color: AppColors.black),
+                    title: const Text('Profile'),
+                    trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ProfileScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  const Divider(),
+                  ListTile(
+                    leading: Icon(Icons.settings, color: AppColors.black),
+                    title: const Text('Settings'),
+                    onTap: () => Navigator.pop(context),
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.help_outline, color: AppColors.black),
+                    title: const Text('Help & Support'),
+                    onTap: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: _buildDrawer(context),
       body: Stack(
         children: [
           // Google Map
@@ -130,22 +234,25 @@ class _MapScreenState extends State<MapScreen> {
               padding: const EdgeInsets.all(AppSpacing.md),
               child: Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(AppSpacing.sm),
-                        decoration: BoxDecoration(
-                          color: AppColors.white,
-                          borderRadius: BorderRadius.circular(
-                            AppBorderRadius.md,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.black.withOpacity(0.1),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
+                      GestureDetector(
+                        onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                        child: Container(
+                          padding: const EdgeInsets.all(AppSpacing.sm),
+                          decoration: BoxDecoration(
+                            color: AppColors.white,
+                            borderRadius: BorderRadius.circular(
+                              AppBorderRadius.md,
                             ),
-                          ],
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.black.withOpacity(0.1),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(Icons.menu, color: AppColors.black),
                         ),
-                        child: const Icon(Icons.menu, color: AppColors.black),
                       ),
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
