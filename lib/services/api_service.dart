@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiService {
@@ -39,8 +40,10 @@ class ApiService {
           return handler.next(response);
         },
         onError: (error, handler) async {
-          print('❌ ERROR[${error.response?.statusCode}] => ${error.requestOptions.path}');
-          
+          debugPrint('❌ ERROR[${error.response?.statusCode}] => ${error.requestOptions.path}');
+          debugPrint('❌ ERROR BODY => ${error.response?.data}');
+          debugPrint('❌ ERROR MESSAGE => ${error.message}');
+
           if (error.response?.statusCode == 401) {
             await _storage.delete(key: 'auth_token');
             await _storage.delete(key: 'user_data');

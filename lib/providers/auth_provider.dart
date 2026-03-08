@@ -208,7 +208,7 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  void logout() async {
+  Future<void> logout() async {
     _user = null;
     _token = null;
     _errorMessage = null;

@@ -1,51 +1,86 @@
 // lib/providers/booking_provider.dart
 import 'package:flutter/material.dart';
-import 'dart:math';
 import '../models/booking.dart';
+import '../models/location_model.dart';
+import '../services/api_service.dart';
+import '../services/booking_service.dart';
 
 class BookingProvider extends ChangeNotifier {
+  final BookingService _bookingService = BookingService(ApiService());
+
   Booking? _current;
+  List<Booking> _history = [];
+  bool _loading = false;
+  String? _errorMessage;
 
   Booking? get current => _current;
-
-  bool _loading = false;
+  List<Booking> get history => _history;
   bool get loading => _loading;
+  String? get errorMessage => _errorMessage;
 
-  Future<void> createBooking({
-    required SimpleLatLng pickupLocation,
-    required String pickupAddress,
-    required SimpleLatLng dropLocation,
-    required String dropAddress,
-    required String vehicleType,
-  }) async {
+  Future<void> loadHistory() async {
     _loading = true;
+    _errorMessage = null;
     notifyListeners();
 
-    // Simulate network call / fare calculation
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      _history = await _bookingService.getBookingHistory();
+    } catch (e) {
+      _errorMessage = e.toString();
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
+  }
 
-    final fare = _estimateFare(pickupLocation, dropLocation, vehicleType);
+  Future<Booking> createBooking({
+    required String fleetId,
+    required List<Map<String, dynamic>> locationData,
+    DateTime? bookingTime,
+    String scheduleType = 'asap',
+    String? paymentMethodId,
+  }) async {
+    _loading = true;
+    _errorMessage = null;
+    notifyListeners();
 
-    _current = Booking(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      pickupLocation: pickupLocation,
-      pickupAddress: pickupAddress,
-      dropLocation: dropLocation,
-      dropAddress: dropAddress,
-      vehicleType: vehicleType,
-      fare: fare,
-    );
+    try {
+      final locations = locationData
+          .map((loc) => LocationModel(
+                lat: (loc['lat'] as num).toDouble(),
+                lng: (loc['lng'] as num).toDouble(),
+                address: loc['address'] as String,
+                type: loc['type'] as String,
+              ))
+          .toList();
 
-    _loading = false;
+      final booking = await _bookingService.createBooking(
+        fleetId: fleetId,
+        locations: locations,
+        bookingTime: bookingTime,
+        scheduleType: scheduleType,
+        paymentMethodId: paymentMethodId,
+      );
+
+      _current = booking;
+      _loading = false;
+      notifyListeners();
+      return booking;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _loading = false;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  void setCurrent(Booking booking) {
+    _current = booking;
     notifyListeners();
   }
 
-  double _estimateFare(SimpleLatLng a, SimpleLatLng b, String vehicleType) {
-    final dx = a.latitude - b.latitude;
-    final dy = a.longitude - b.longitude;
-    final km = sqrt(dx * dx + dy * dy) * 111.0; // rough deg->km
-    double base = 50.0;
-    double perKm = vehicleType.toLowerCase().contains('sedan') ? 12.0 : 18.0;
-    return (base + perKm * km).clamp(60.0, 9999.0);
+  void clearCurrent() {
+    _current = null;
+    notifyListeners();
   }
 }

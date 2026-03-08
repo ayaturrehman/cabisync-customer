@@ -41,29 +41,31 @@ class BookingService {
   }
 
   Future<Booking> createBooking({
-    required int fleetId,
+    required String fleetId,
     required List<LocationModel> locations,
     DateTime? bookingTime,
     String scheduleType = 'asap',
-    String? paymentMethod,
+    String? paymentMethodId,
     String? notes,
   }) async {
     try {
       final response = await _apiService.post(
-        '/bookings',
+        '/booking',
         data: {
           'fleet_id': fleetId,
           'locations': locations.map((loc) => loc.toJson()).toList(),
-          if (bookingTime != null) 'booking_time': bookingTime.toIso8601String(),
+          'booking_time': (bookingTime ?? DateTime.now()).toIso8601String(),
           'schedule_type': scheduleType,
-          if (paymentMethod != null) 'payment_method': paymentMethod,
+          if (paymentMethodId != null) 'payment_method_id': paymentMethodId,
           if (notes != null) 'notes': notes,
         },
       );
 
       final data = response.data as Map<String, dynamic>;
-      final bookingData = data['data'] as Map<String, dynamic>? ?? data;
-      
+      final bookingData = data['booking'] as Map<String, dynamic>?
+          ?? data['data'] as Map<String, dynamic>?
+          ?? data;
+
       return Booking.fromJson(bookingData);
     } catch (e) {
       rethrow;
@@ -108,7 +110,7 @@ class BookingService {
   }) async {
     try {
       final response = await _apiService.get(
-        '/bookings/history',
+        '/booking/list',
         queryParameters: {
           'page': page,
           'per_page': perPage,
@@ -117,8 +119,10 @@ class BookingService {
       );
 
       final data = response.data as Map<String, dynamic>;
-      final bookings = data['data'] as List<dynamic>;
-      
+      final bookings = data['bookings'] as List<dynamic>?
+          ?? data['data'] as List<dynamic>?
+          ?? [];
+
       return bookings
           .map((booking) => Booking.fromJson(booking as Map<String, dynamic>))
           .toList();
@@ -164,8 +168,8 @@ class BookingService {
       final response = await _apiService.get('/bookings/scheduled');
       
       final data = response.data as Map<String, dynamic>;
-      final bookings = data['data'] as List<dynamic>;
-      
+      final bookings = data['data'] as List<dynamic>? ?? [];
+
       return bookings
           .map((booking) => Booking.fromJson(booking as Map<String, dynamic>))
           .toList();

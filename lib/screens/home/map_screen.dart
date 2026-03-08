@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:provider/provider.dart';
 import '../../config/theme.dart';
+import '../../providers/auth_provider.dart';
 import 'route_editor_screen.dart';
 import '../booking/ride_history_screen.dart';
 import '../profile/profile_screen.dart';
@@ -82,7 +84,6 @@ class _MapScreenState extends State<MapScreen> {
         );
       }
     } catch (e) {
-      print('Error getting location: $e');
       if (mounted) {
         setState(() => _isLoadingLocation = false);
       }
@@ -104,13 +105,27 @@ class _MapScreenState extends State<MapScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(AppSpacing.lg),
-              decoration: BoxDecoration(color: AppColors.black),
+              decoration: const BoxDecoration(
+                color: AppColors.white,
+                border: Border(
+                  bottom: BorderSide(color: AppColors.border, width: 1),
+                ),
+              ),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: AppColors.white,
-                    child: Icon(Icons.person, size: 32, color: AppColors.black),
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.border, width: 1.5),
+                    ),
+                    child: const Icon(
+                      Icons.person,
+                      size: 30,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
@@ -118,19 +133,14 @@ class _MapScreenState extends State<MapScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Welcome back!',
-                          style: TextStyle(
-                            color: AppColors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          Provider.of<AuthProvider>(context).user?.name ?? 'Guest',
+                          style: AppTextStyles.heading3,
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: AppSpacing.xs),
                         Text(
-                          'Manage your account',
-                          style: TextStyle(
-                            color: AppColors.white.withOpacity(0.8),
-                            fontSize: 14,
+                          Provider.of<AuthProvider>(context).user?.email ?? '',
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.textSecondary,
                           ),
                         ),
                       ],
@@ -153,13 +163,9 @@ class _MapScreenState extends State<MapScreen> {
                     title: const Text('Ride History'),
                     trailing: Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const RideHistoryScreen(),
-                        ),
-                      );
+                      final nav = Navigator.of(context);
+                      nav.pop();
+                      nav.push(MaterialPageRoute(builder: (_) => const RideHistoryScreen()));
                     },
                   ),
                   ListTile(
@@ -167,13 +173,9 @@ class _MapScreenState extends State<MapScreen> {
                     title: const Text('Profile'),
                     trailing: Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const ProfileScreen(),
-                        ),
-                      );
+                      final nav = Navigator.of(context);
+                      nav.pop();
+                      nav.push(MaterialPageRoute(builder: (_) => const ProfileScreen()));
                     },
                   ),
                   const Divider(),
@@ -204,29 +206,37 @@ class _MapScreenState extends State<MapScreen> {
       body: Stack(
         children: [
           // Google Map
-          GoogleMap(
-            initialCameraPosition: _defaultPosition,
-            myLocationEnabled: true,
-            myLocationButtonEnabled: false,
-            zoomControlsEnabled: false,
-            mapToolbarEnabled: false,
-            onMapCreated: (controller) {
-              _mapController = controller;
-              if (_currentPosition != null) {
-                controller.animateCamera(
-                  CameraUpdate.newCameraPosition(
-                    CameraPosition(
-                      target: LatLng(
-                        _currentPosition!.latitude,
-                        _currentPosition!.longitude,
+          _isLoadingLocation
+              ? Container(
+                color: AppColors.surface,
+                child: const Center(child: CircularProgressIndicator()),
+              )
+              : GoogleMap(
+                initialCameraPosition: _defaultPosition,
+                myLocationEnabled: true,
+                myLocationButtonEnabled: false,
+                zoomControlsEnabled: false,
+                mapToolbarEnabled: false,
+                compassEnabled: true,
+                mapType: MapType.normal,
+                onMapCreated: (controller) {
+                  _mapController = controller;
+                  if (_currentPosition != null) {
+                    controller.animateCamera(
+                      CameraUpdate.newCameraPosition(
+                        CameraPosition(
+                          target: LatLng(
+                            _currentPosition!.latitude,
+                            _currentPosition!.longitude,
+                          ),
+                          zoom: 15,
+                        ),
                       ),
-                      zoom: 15,
-                    ),
-                  ),
-                );
-              }
-            },
-          ),
+                    );
+                  } else {
+                  }
+                },
+              ),
 
           // Top bar with menu and profile
           SafeArea(
@@ -243,13 +253,7 @@ class _MapScreenState extends State<MapScreen> {
                             borderRadius: BorderRadius.circular(
                               AppBorderRadius.md,
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.black.withOpacity(0.1),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
+                            border: Border.all(color: AppColors.border),
                           ),
                           child: const Icon(Icons.menu, color: AppColors.black),
                         ),
@@ -266,19 +270,16 @@ class _MapScreenState extends State<MapScreen> {
                             borderRadius: BorderRadius.circular(
                               AppBorderRadius.md,
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.black.withOpacity(0.1),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
+                            border: Border.all(color: AppColors.border),
                           ),
                           child: Row(
                             children: [
                               const Icon(Icons.person, color: AppColors.accent),
                               const SizedBox(width: AppSpacing.sm),
-                              Text('Welcome back!', style: AppTextStyles.body),
+                              Text(
+                                "Hi, ${Provider.of<AuthProvider>(context).user?.name.split(' ').first ?? 'there'}!",
+                                style: AppTextStyles.body,
+                              ),
                             ],
                           ),
                         ),
@@ -303,13 +304,7 @@ class _MapScreenState extends State<MapScreen> {
                     decoration: BoxDecoration(
                       color: AppColors.white,
                       borderRadius: BorderRadius.circular(AppBorderRadius.lg),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.black.withOpacity(0.15),
-                          blurRadius: 20,
-                          offset: const Offset(0, -4),
-                        ),
-                      ],
+                      border: Border.all(color: AppColors.border),
                     ),
                     child: InkWell(
                       onTap: _openRouteEditor,
@@ -355,13 +350,7 @@ class _MapScreenState extends State<MapScreen> {
                   decoration: BoxDecoration(
                     color: AppColors.white,
                     shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                    border: Border.all(color: AppColors.border),
                   ),
                   child: IconButton(
                     icon:

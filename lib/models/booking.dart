@@ -45,43 +45,76 @@ class Booking {
   });
 
   factory Booking.fromJson(Map<String, dynamic> json) {
+    // Backend returns bk_-prefixed column names; fallback to clean keys for internal use
+    final isBkFormat = json.containsKey('bk_id') || json.containsKey('bk_status');
+
+    double? parseFare(dynamic v) {
+      if (v == null) return null;
+      if (v is num) return v.toDouble();
+      return double.tryParse(v.toString().replaceAll(',', ''));
+    }
+
+    // Build locations list
+    List<LocationModel> locations;
+    if (json['locations'] != null) {
+      locations = (json['locations'] as List<dynamic>)
+          .map((e) => LocationModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } else if (isBkFormat) {
+      // Construct from individual pickup/dropoff fields
+      locations = [];
+      if (json['bk_pickup_location'] != null) {
+        locations.add(LocationModel(
+          lat: double.tryParse(json['bk_pickup_lat']?.toString() ?? '') ?? 0,
+          lng: double.tryParse(json['bk_pickup_lng']?.toString() ?? '') ?? 0,
+          address: json['bk_pickup_location'] as String,
+          type: 'pickup',
+        ));
+      }
+      if (json['bk_dropoff_location'] != null) {
+        locations.add(LocationModel(
+          lat: double.tryParse(json['bk_dropoff_lat']?.toString() ?? '') ?? 0,
+          lng: double.tryParse(json['bk_dropoff_lng']?.toString() ?? '') ?? 0,
+          address: json['bk_dropoff_location'] as String,
+          type: 'dropoff',
+        ));
+      }
+    } else {
+      locations = [];
+    }
+
     return Booking(
-      id: json['id'] as int?,
+      id: (json['bk_id'] ?? json['id']) as int?,
       bookingNumber: json['booking_number'] as String?,
-      status: json['status'] as String,
-      fleetId: json['fleet_id'] as int,
+      status: (json['bk_status'] ?? json['status'] ?? 'unknown') as String,
+      fleetId: ((json['bk_fleet_type'] ?? json['fleet_id']) as num?)?.toInt() ?? 0,
       fleetType: json['fleet_type'] as String?,
-      locations: (json['locations'] as List<dynamic>?)
-              ?.map((e) => LocationModel.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
-      bookingTime: json['booking_time'] != null
-          ? DateTime.parse(json['booking_time'] as String)
-          : null,
+      locations: locations,
+      bookingTime: () {
+        final raw = json['bk_bookingtime'] ?? json['booking_time'];
+        if (raw == null) return null;
+        return DateTime.tryParse(raw.toString());
+      }(),
       scheduleType: json['schedule_type'] as String? ?? 'asap',
-      fare: json['fare'] != null ? (json['fare'] as num).toDouble() : null,
-      distanceMi: json['distance_mi'] != null
-          ? (json['distance_mi'] as num).toDouble()
-          : null,
-      durationMin: json['duration_min'] != null
-          ? (json['duration_min'] as num).toDouble()
-          : null,
-      paymentMethod: json['payment_method'] as String?,
-      notes: json['notes'] as String?,
+      fare: parseFare(json['bk_total'] ?? json['bk_fare'] ?? json['fare']),
+      distanceMi: parseFare(json['bk_distance'] ?? json['distance_mi']),
+      durationMin: null,
+      paymentMethod: (json['bk_payment_method'] ?? json['payment_method']) as String?,
+      notes: (json['bk_booking_notes'] ?? json['notes']) as String?,
       driver: json['driver'] != null
           ? Driver.fromJson(json['driver'] as Map<String, dynamic>)
           : null,
       createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
+          ? DateTime.tryParse(json['created_at'].toString())
           : null,
       startedAt: json['started_at'] != null
-          ? DateTime.parse(json['started_at'] as String)
+          ? DateTime.tryParse(json['started_at'].toString())
           : null,
       completedAt: json['completed_at'] != null
-          ? DateTime.parse(json['completed_at'] as String)
+          ? DateTime.tryParse(json['completed_at'].toString())
           : null,
       cancelledAt: json['cancelled_at'] != null
-          ? DateTime.parse(json['cancelled_at'] as String)
+          ? DateTime.tryParse(json['cancelled_at'].toString())
           : null,
       cancellationReason: json['cancellation_reason'] as String?,
     );

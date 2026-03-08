@@ -8,12 +8,14 @@ class RideTrackingScreen extends StatefulWidget {
   final String pickupLocation;
   final String destinationLocation;
   final String rideType;
+  final int? bookingId;
 
   const RideTrackingScreen({
     super.key,
     required this.pickupLocation,
     required this.destinationLocation,
     required this.rideType,
+    this.bookingId,
   });
 
   @override

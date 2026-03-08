@@ -10,6 +10,7 @@ class WebSocketService {
   final Map<String, StreamController> _controllers = {};
   String? _authToken;
   bool _isConnected = false;
+  bool _intentionalDisconnect = false;
 
   bool get isConnected => _isConnected;
 
@@ -60,10 +61,12 @@ class WebSocketService {
   void _handleDone() {
     print('🔌 WebSocket connection closed');
     _isConnected = false;
-    
+
+    if (_intentionalDisconnect) return;
+
     if (_authToken != null) {
       Future.delayed(const Duration(seconds: 5), () {
-        if (!_isConnected) {
+        if (!_isConnected && !_intentionalDisconnect) {
           print('🔄 Attempting to reconnect WebSocket...');
           connect(_authToken!);
         }
@@ -116,6 +119,7 @@ class WebSocketService {
   }
 
   void disconnect() {
+    _intentionalDisconnect = true;
     _channel?.sink.close();
     
     for (var controller in _controllers.values) {
