@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 class AppColors {
   static const primary = Color(0xFF000000);
   static const secondary = Color(0xFF333333);
+  // Neutral accent (used for secondary UI, not the brand color).
   static const accent = Color(0xFF666666);
+  // Single brand accent used for interactive elements (links, focus, highlights).
+  static const brand = Color(0xFF2563EB);
   static const background = Color(0xFFFFFFFF);
   static const surface = Color(0xFFF5F5F5);
   static const border = Color(0xFFE0E0E0);
@@ -11,10 +14,20 @@ class AppColors {
   static const textSecondary = Color(0xFF666666);
   static const textHint = Color(0xFF999999);
   static const disabled = Color(0xFFCCCCCC);
-  static const error = Color(0xFF000000);
-  static const success = Color(0xFF000000);
+  static const error = Color(0xFFDC2626);
+  static const success = Color(0xFF16A34A);
+  static const warning = Color(0xFFF59E0B);
   static const white = Color(0xFFFFFFFF);
   static const black = Color(0xFF000000);
+
+  static const onBrand = Color(0xFFFFFFFF);
+  static const onSurface = Color(0xFF000000);
+  static const onError = Color(0xFFFFFFFF);
+
+  // Error tints — used for destructive actions (logout, delete)
+  static const errorLight  = Color(0xFFFFEBEE);
+  static const errorBorder = Color(0xFFFFCDD2);
+  static const errorText   = Color(0xFFD32F2F);
 }
 
 class AppTextStyles {
@@ -120,12 +133,13 @@ class AppTheme {
       colorScheme: const ColorScheme.light(
         primary: AppColors.primary,
         secondary: AppColors.secondary,
+        tertiary: AppColors.brand,
         surface: AppColors.surface,
         error: AppColors.error,
         onPrimary: AppColors.white,
         onSecondary: AppColors.white,
-        onSurface: AppColors.textPrimary,
-        onError: AppColors.white,
+        onSurface: AppColors.onSurface,
+        onError: AppColors.onError,
       ),
       
       appBarTheme: const AppBarTheme(
@@ -164,8 +178,8 @@ class AppTheme {
       
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primary,
-          side: const BorderSide(color: AppColors.primary, width: 2),
+          foregroundColor: AppColors.brand,
+          side: const BorderSide(color: AppColors.brand, width: 2),
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.lg,
             vertical: AppSpacing.md,
@@ -179,7 +193,7 @@ class AppTheme {
       
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: AppColors.primary,
+          foregroundColor: AppColors.brand,
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.md,
             vertical: AppSpacing.sm,
@@ -205,7 +219,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderSide: const BorderSide(color: AppColors.brand, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
@@ -222,8 +236,8 @@ class AppTheme {
       
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: AppColors.white,
-        selectedItemColor: AppColors.white,
-        unselectedItemColor: AppColors.black,
+        selectedItemColor: AppColors.brand,
+        unselectedItemColor: AppColors.accent,
         elevation: AppElevation.md,
         type: BottomNavigationBarType.fixed,
         selectedLabelStyle: TextStyle(
@@ -248,7 +262,7 @@ class AppTheme {
       ),
       
       progressIndicatorTheme: const ProgressIndicatorThemeData(
-        color: AppColors.primary,
+        color: AppColors.brand,
       ),
       
       snackBarTheme: SnackBarThemeData(

@@ -30,10 +30,10 @@ class RideTypeCard extends StatelessWidget {
         curve: AppAnimations.defaultCurve,
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.black : AppColors.white,
+          color: isSelected ? AppColors.brand : AppColors.white,
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
           border: Border.all(
-            color: isSelected ? AppColors.black : AppColors.border,
+            color: isSelected ? AppColors.brand : AppColors.border,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -42,7 +42,7 @@ class RideTypeCard extends StatelessWidget {
             Icon(
               icon,
               size: 32,
-              color: isSelected ? AppColors.white : AppColors.black,
+              color: isSelected ? AppColors.onBrand : AppColors.black,
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
@@ -52,14 +52,17 @@ class RideTypeCard extends StatelessWidget {
                   Text(
                     name,
                     style: AppTextStyles.heading3.copyWith(
-                      color: isSelected ? AppColors.white : AppColors.black,
+                      color: isSelected ? AppColors.onBrand : AppColors.black,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
                     '$capacity • $estimatedTime',
                     style: AppTextStyles.caption.copyWith(
-                      color: isSelected ? AppColors.white.withOpacity(0.8) : AppColors.textSecondary,
+                      color:
+                          isSelected
+                              ? AppColors.onBrand.withValues(alpha: 0.85)
+                              : AppColors.textSecondary,
                     ),
                   ),
                 ],
@@ -68,7 +71,7 @@ class RideTypeCard extends StatelessWidget {
             Text(
               price,
               style: AppTextStyles.heading3.copyWith(
-                color: isSelected ? AppColors.white : AppColors.black,
+                color: isSelected ? AppColors.onBrand : AppColors.black,
                 fontWeight: FontWeight.bold,
               ),
             ),

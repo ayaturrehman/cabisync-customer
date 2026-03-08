@@ -67,6 +67,12 @@ class PlaceService {
     final lat = (data['location']?['latitude'] as num?)?.toDouble();
     final lng = (data['location']?['longitude'] as num?)?.toDouble();
 
-    return PlaceDetail(name: name, address: address, lat: lat, lng: lng);
+    return PlaceDetail(
+      placeId: suggestion.id,
+      name: name,
+      address: address,
+      lat: lat,
+      lng: lng,
+    );
   }
 }

@@ -1,4 +1,5 @@
 import 'api_service.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 class NotificationService {
@@ -69,5 +70,3 @@ class NotificationService {
     return 'unknown';
   }
 }
-
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;

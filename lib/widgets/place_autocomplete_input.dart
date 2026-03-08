@@ -19,6 +19,18 @@ class PlaceDetail {
   });
 }
 
+class PlaceSuggestion {
+  final String id;
+  final String description;
+  final String display;
+
+  const PlaceSuggestion({
+    required this.id,
+    required this.description,
+    required this.display,
+  });
+}
+
 typedef OnPlaceSelected = void Function(PlaceDetail place);
 
 class PlaceAutocompleteInput extends StatefulWidget {
@@ -27,6 +39,7 @@ class PlaceAutocompleteInput extends StatefulWidget {
   final TextEditingController controller;
   final FocusNode? focusNode;
   final OnPlaceSelected? onPlaceSelected;
+  final ValueChanged<String>? onChanged;
   final IconData? prefixIcon;
   final bool readOnly;
   final VoidCallback? onTap;
@@ -38,6 +51,7 @@ class PlaceAutocompleteInput extends StatefulWidget {
     this.label = 'Enter location',
     this.hint = 'Search for a place',
     this.onPlaceSelected,
+    this.onChanged,
     this.prefixIcon,
     this.readOnly = false,
     this.onTap,
@@ -73,6 +87,7 @@ class _PlaceAutocompleteInputState extends State<PlaceAutocompleteInput> {
 
     final text = widget.controller.text;
     print('PlaceAutocomplete: Text changed to "$text"');
+    widget.onChanged?.call(text);
 
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(milliseconds: 500), () {

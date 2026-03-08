@@ -2,6 +2,41 @@ import '../api/api_service.dart';
 import '../models/fare_estimate.dart';
 
 class FareService {
+  /// Convenience helper: calculate a single (first) fare estimate.
+  ///
+  /// Prefer [calculateFares] in production code when multiple fleet types exist.
+  static Future<FareEstimate> calculateFare({
+    required String authToken,
+    required double pickupLat,
+    required double pickupLng,
+    required String pickupAddress,
+    required double dropoffLat,
+    required double dropoffLng,
+    required String dropoffAddress,
+    String? bookingTime,
+    String scheduleType = 'asap',
+    List<Map<String, dynamic>>? stops,
+  }) async {
+    final fares = await calculateFares(
+      authToken: authToken,
+      pickupLat: pickupLat,
+      pickupLng: pickupLng,
+      pickupAddress: pickupAddress,
+      dropoffLat: dropoffLat,
+      dropoffLng: dropoffLng,
+      dropoffAddress: dropoffAddress,
+      bookingTime: bookingTime,
+      scheduleType: scheduleType,
+      stops: stops,
+    );
+
+    if (fares.isEmpty) {
+      throw Exception('No fare estimates returned');
+    }
+
+    return fares.first;
+  }
+
   /// Calculate fare estimates for all available fleet types
   ///
   /// Returns a list of fare estimates, one for each fleet type
@@ -146,5 +181,42 @@ class FareService {
       print('Fare calculation error: $e');
       rethrow;
     }
+  }
+
+  /// Convenience helper: calculate a single (first) fare estimate with metrics.
+  static Future<FareEstimate> calculateFareWithMetrics({
+    required String authToken,
+    required double pickupLat,
+    required double pickupLng,
+    required String pickupAddress,
+    required double dropoffLat,
+    required double dropoffLng,
+    required String dropoffAddress,
+    required double distanceMi,
+    required double durationMin,
+    String? bookingTime,
+    String scheduleType = 'asap',
+    List<Map<String, dynamic>>? stops,
+  }) async {
+    final fares = await calculateFaresWithMetrics(
+      authToken: authToken,
+      pickupLat: pickupLat,
+      pickupLng: pickupLng,
+      pickupAddress: pickupAddress,
+      dropoffLat: dropoffLat,
+      dropoffLng: dropoffLng,
+      dropoffAddress: dropoffAddress,
+      distanceMi: distanceMi,
+      durationMin: durationMin,
+      bookingTime: bookingTime,
+      scheduleType: scheduleType,
+      stops: stops,
+    );
+
+    if (fares.isEmpty) {
+      throw Exception('No fare estimates returned');
+    }
+
+    return fares.first;
   }
 }

@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../config/theme.dart';
+import '../../models/booking.dart';
+import '../../services/api_service.dart';
+import '../../services/booking_service.dart';
 import '../../widgets/custom_app_bar.dart';
+import '../../widgets/custom_button.dart';
 import '../../widgets/custom_card.dart';
+import '../../widgets/route_visualization.dart';
 import '../../widgets/shimmer_loading.dart';
 
 class RideHistoryScreen extends StatefulWidget {
@@ -13,34 +18,40 @@ class RideHistoryScreen extends StatefulWidget {
 }
 
 class _RideHistoryScreenState extends State<RideHistoryScreen> {
-  final bool _isLoading = false;
+  final BookingService _bookingService = BookingService(ApiService());
+  bool _isLoading = true;
+  List<Booking> _rides = [];
+  String? _errorMessage;
 
-  final List<RideHistoryItem> _rides = [
-    RideHistoryItem(
-      id: '1',
-      from: '123 Main Street',
-      to: '456 Office Building',
-      date: '2 hours ago',
-      price: '\$15.50',
-      status: 'Completed',
-    ),
-    RideHistoryItem(
-      id: '2',
-      from: '789 Home Avenue',
-      to: 'Central Shopping Mall',
-      date: 'Yesterday',
-      price: '\$22.00',
-      status: 'Completed',
-    ),
-    RideHistoryItem(
-      id: '3',
-      from: '321 Park Lane',
-      to: 'Airport Terminal',
-      date: '3 days ago',
-      price: '\$45.00',
-      status: 'Completed',
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final rides = await _bookingService.getBookingHistory();
+      if (mounted) {
+        setState(() {
+          _rides = rides;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = e.toString().replaceAll('Exception: ', '');
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,15 +67,17 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
               padding: const EdgeInsets.all(AppSpacing.md),
               itemBuilder: (context, index) => const ShimmerCard(),
             )
-          : _rides.isEmpty
-              ? _buildEmptyState()
-              : ListView.builder(
-                  itemCount: _rides.length,
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  itemBuilder: (context, index) {
-                    return _buildRideCard(_rides[index], index);
-                  },
-                ),
+          : _errorMessage != null
+              ? _buildErrorState()
+              : _rides.isEmpty
+                  ? _buildEmptyState()
+                  : ListView.builder(
+                      itemCount: _rides.length,
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      itemBuilder: (context, index) {
+                        return _buildRideCard(_rides[index], index);
+                      },
+                    ),
     );
   }
 
@@ -111,7 +124,53 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
     );
   }
 
-  Widget _buildRideCard(RideHistoryItem ride, int index) {
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              _errorMessage!,
+              style: AppTextStyles.bodySecondary,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            CustomButton(
+              text: 'Retry',
+              icon: Icons.refresh,
+              variant: ButtonVariant.text,
+              onPressed: _loadHistory,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRideCard(Booking ride, int index) {
+    final now = DateTime.now();
+    final date = ride.createdAt;
+    String dateLabel = '';
+    if (date != null) {
+      final diff = now.difference(date);
+      if (diff.inHours < 24) {
+        dateLabel = '${diff.inHours}h ago';
+      } else if (diff.inDays == 1) {
+        dateLabel = 'Yesterday';
+      } else if (diff.inDays < 7) {
+        dateLabel = '${diff.inDays} days ago';
+      } else {
+        dateLabel = '${date.day}/${date.month}/${date.year}';
+      }
+    }
+
+    final priceLabel = ride.fare != null ? '£${ride.fare!.toStringAsFixed(2)}' : '';
+    final statusLabel = ride.status[0].toUpperCase() + ride.status.substring(1).replaceAll('_', ' ');
+
     return CustomCard(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       onTap: () {},
@@ -137,14 +196,8 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      ride.date,
-                      style: AppTextStyles.caption,
-                    ),
-                    Text(
-                      ride.price,
-                      style: AppTextStyles.heading3,
-                    ),
+                    Text(dateLabel, style: AppTextStyles.caption),
+                    Text(priceLabel, style: AppTextStyles.heading3),
                   ],
                 ),
               ),
@@ -158,10 +211,8 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
                   borderRadius: BorderRadius.circular(AppBorderRadius.sm),
                 ),
                 child: Text(
-                  ride.status,
-                  style: AppTextStyles.caption.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  statusLabel,
+                  style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -169,52 +220,9 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
           const SizedBox(height: AppSpacing.md),
           const Divider(height: 1),
           const SizedBox(height: AppSpacing.md),
-          Row(
-            children: [
-              Column(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: AppColors.black,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  Container(
-                    width: 2,
-                    height: 20,
-                    color: AppColors.border,
-                  ),
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.black, width: 2),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      ride.from,
-                      style: AppTextStyles.body,
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    Text(
-                      ride.to,
-                      style: AppTextStyles.body,
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          RouteVisualization(
+            pickup: ride.pickupAddress,
+            dropoff: ride.dropoffAddress,
           ),
         ],
       ),
@@ -223,22 +231,4 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
         .fadeIn(delay: (index * 100).ms, duration: AppAnimations.fast)
         .slideY(begin: 0.1, end: 0);
   }
-}
-
-class RideHistoryItem {
-  final String id;
-  final String from;
-  final String to;
-  final String date;
-  final String price;
-  final String status;
-
-  RideHistoryItem({
-    required this.id,
-    required this.from,
-    required this.to,
-    required this.date,
-    required this.price,
-    required this.status,
-  });
 }

@@ -72,7 +72,7 @@ class CustomButton extends StatelessWidget {
               valueColor: AlwaysStoppedAnimation<Color>(
                 variant == ButtonVariant.filled
                     ? AppColors.white
-                    : AppColors.black,
+                    : AppColors.brand,
               ),
             ),
           )
@@ -116,9 +116,9 @@ class CustomButton extends StatelessWidget {
           child: OutlinedButton(
             onPressed: isDisabled ? null : onPressed,
             style: OutlinedButton.styleFrom(
-              foregroundColor: isDisabled ? AppColors.disabled : AppColors.primary,
+              foregroundColor: isDisabled ? AppColors.disabled : AppColors.brand,
               side: BorderSide(
-                color: isDisabled ? AppColors.disabled : AppColors.primary,
+                color: isDisabled ? AppColors.disabled : AppColors.brand,
                 width: 2,
               ),
               padding: padding,
@@ -136,7 +136,7 @@ class CustomButton extends StatelessWidget {
           child: TextButton(
             onPressed: isDisabled ? null : onPressed,
             style: TextButton.styleFrom(
-              foregroundColor: isDisabled ? AppColors.disabled : AppColors.primary,
+              foregroundColor: isDisabled ? AppColors.disabled : AppColors.brand,
               padding: padding,
             ),
             child: buttonChild,

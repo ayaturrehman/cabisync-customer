@@ -5,8 +5,12 @@ import '../../config/theme.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/ride_type_card.dart';
 import '../../widgets/custom_button.dart';
+import '../../widgets/route_visualization.dart';
 import '../../models/fare_estimate.dart';
 import '../../services/fare_service.dart';
+import '../../services/api_service.dart';
+import '../../services/booking_service.dart';
+import '../../models/location_model.dart';
 import '../../providers/auth_provider.dart';
 import 'ride_tracking_screen.dart';
 
@@ -78,6 +82,10 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
       setState(() {
         _fareEstimates = fares;
         _isLoadingFares = false;
+        // Reset selection if it's now out of bounds
+        if (_selectedRideType >= fares.length) {
+          _selectedRideType = 0;
+        }
         if (fares.isEmpty) {
           _errorMessage = 'No rides available at this time';
         }
@@ -104,26 +112,93 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
     }
   }
 
+  Future<String?> _getDefaultPaymentMethod() async {
+    try {
+      final apiService = ApiService();
+      final response = await apiService.get('/list-saved-cards');
+      final data = response.data as Map<String, dynamic>;
+      final cards = data['cards'] as List<dynamic>? ?? [];
+      if (cards.isEmpty) return null;
+      // Use the default card, otherwise the first one
+      final defaultCard = cards.firstWhere(
+        (c) => c['is_default'] == true,
+        orElse: () => cards.first,
+      );
+      return defaultCard['id'] as String?;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _bookRide() async {
     if (_fareEstimates.isEmpty) return;
 
-    setState(() => _isBooking = true);
+    setState(() {
+      _isBooking = true;
+      _errorMessage = null;
+    });
 
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      final selectedFare = _fareEstimates[_selectedRideType];
+      final fleetId = selectedFare.fleetId ?? '';
 
-    if (mounted) {
-      setState(() => _isBooking = false);
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder:
-              (_) => RideTrackingScreen(
-                pickupLocation: widget.pickupLocation,
-                destinationLocation: widget.destinationLocation,
-                rideType:
-                    _fareEstimates[_selectedRideType].fleetType ?? 'Economy',
-              ),
-        ),
+      if (fleetId.isEmpty) {
+        throw Exception('Invalid fleet selection. Please try again.');
+      }
+
+      final paymentMethodId = await _getDefaultPaymentMethod();
+      if (paymentMethodId == null) {
+        throw Exception('No payment method found. Please add a card before booking.');
+      }
+
+      final bookingService = BookingService(ApiService());
+      final booking = await bookingService.createBooking(
+        fleetId: fleetId,
+        locations: [
+          LocationModel(
+            lat: widget.pickupLat,
+            lng: widget.pickupLng,
+            address: widget.pickupLocation,
+            type: 'pickup',
+          ),
+          LocationModel(
+            lat: widget.dropLat,
+            lng: widget.dropLng,
+            address: widget.destinationLocation,
+            type: 'dropoff',
+          ),
+        ],
+        bookingTime: widget.scheduledTime,
+        scheduleType: widget.scheduledTime != null ? 'schedule' : 'asap',
+        paymentMethodId: paymentMethodId,
       );
+
+      if (mounted) {
+        setState(() => _isBooking = false);
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => RideTrackingScreen(
+              pickupLocation: widget.pickupLocation,
+              destinationLocation: widget.destinationLocation,
+              rideType: selectedFare.fleetType ?? 'Economy',
+              bookingId: booking.id,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isBooking = false;
+          _errorMessage = e.toString().replaceAll('Exception: ', '');
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_errorMessage ?? 'Booking failed'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
 
@@ -144,64 +219,12 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
                         padding: const EdgeInsets.all(AppSpacing.md),
                         decoration: BoxDecoration(
                           color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(
-                            AppBorderRadius.md,
-                          ),
+                          borderRadius: BorderRadius.circular(AppBorderRadius.md),
                           border: Border.all(color: AppColors.border),
                         ),
-                        child: Row(
-                          children: [
-                            Column(
-                              children: [
-                                Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: const BoxDecoration(
-                                    color: AppColors.black,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                Container(
-                                  width: 2,
-                                  height: 30,
-                                  color: AppColors.border,
-                                ),
-                                Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.white,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: AppColors.black,
-                                      width: 2,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(width: AppSpacing.md),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    widget.pickupLocation,
-                                    style: AppTextStyles.body,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: AppSpacing.lg),
-                                  Text(
-                                    widget.destinationLocation,
-                                    style: AppTextStyles.body,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                        child: RouteVisualization(
+                          pickup: widget.pickupLocation,
+                          dropoff: widget.destinationLocation,
                         ),
                       )
                       .animate()
@@ -228,28 +251,31 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
                     Container(
                       padding: const EdgeInsets.all(AppSpacing.md),
                       decoration: BoxDecoration(
-                        color: Colors.red.shade50,
+                        color: AppColors.surface,
                         borderRadius: BorderRadius.circular(AppBorderRadius.md),
-                        border: Border.all(color: Colors.red.shade200),
+                        border: Border.all(color: AppColors.border),
                       ),
                       child: Column(
                         children: [
                           Icon(
                             Icons.error_outline,
-                            color: Colors.red.shade700,
+                            color: AppColors.error,
                             size: 48,
                           ),
                           const SizedBox(height: AppSpacing.sm),
                           Text(
                             _errorMessage!,
-                            style: TextStyle(color: Colors.red.shade700),
+                            style: AppTextStyles.body.copyWith(
+                              color: AppColors.textPrimary,
+                            ),
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: AppSpacing.md),
-                          TextButton.icon(
+                          CustomButton(
+                            text: 'Retry',
+                            icon: Icons.refresh,
+                            variant: ButtonVariant.text,
                             onPressed: _loadFares,
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Retry'),
                           ),
                         ],
                       ),
