@@ -74,7 +74,7 @@ class BookingService {
 
   Future<Booking> getBooking(int bookingId) async {
     try {
-      final response = await _apiService.get('/bookings/$bookingId');
+      final response = await _apiService.get('/booking/$bookingId');
       
       final data = response.data as Map<String, dynamic>;
       final bookingData = data['data'] as Map<String, dynamic>? ?? data;
@@ -87,7 +87,7 @@ class BookingService {
 
   Future<Booking?> getCurrentBooking() async {
     try {
-      final response = await _apiService.get('/bookings/current');
+      final response = await _apiService.get('/booking/current');
       
       final data = response.data as Map<String, dynamic>;
       
@@ -134,7 +134,7 @@ class BookingService {
   Future<void> cancelBooking(int bookingId, {String? reason}) async {
     try {
       await _apiService.post(
-        '/bookings/$bookingId/cancel',
+        '/booking/$bookingId/cancel',
         data: {
           if (reason != null) 'reason': reason,
         },
@@ -185,7 +185,7 @@ class BookingService {
   }) async {
     try {
       final response = await _apiService.put(
-        '/bookings/$bookingId',
+        '/booking/$bookingId',
         data: {
           if (bookingTime != null) 'booking_time': bookingTime.toIso8601String(),
           if (locations != null) 'locations': locations.map((loc) => loc.toJson()).toList(),
