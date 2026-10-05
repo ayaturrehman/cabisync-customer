@@ -185,7 +185,7 @@ class BookingService {
   }) async {
     try {
       final response = await _apiService.put(
-        '/booking/$bookingId',
+        '/bookings/$bookingId',
         data: {
           if (bookingTime != null) 'booking_time': bookingTime.toIso8601String(),
           if (locations != null) 'locations': locations.map((loc) => loc.toJson()).toList(),
