@@ -322,14 +322,14 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
-          'Plan your ride',
+          'Your route',
           style: TextStyle(
             color: AppColors.black,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
+            fontSize: 26,
+            fontWeight: FontWeight.w700,
           ),
         ),
-        centerTitle: true,
+        centerTitle: false,
       ),
       body: Column(
         children: [
@@ -382,9 +382,8 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
           Container(
             margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             decoration: BoxDecoration(
-              color: AppColors.white,
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(AppBorderRadius.sm),
-              border: Border.all(color: AppColors.black, width: 2),
             ),
             child: Column(
               children: [
@@ -443,17 +442,15 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
 
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -5),
-            ),
-          ],
+        decoration: BoxDecoration(color: AppColors.white),
+        child: SafeArea(
+          top: false,
+          child: CustomButton(
+            text: 'Continue',
+            onPressed: _findRoute,
+            fullWidth: true,
+          ),
         ),
-        child: CustomButton(text: 'Find a Route', onPressed: _findRoute),
       ),
     );
   }
@@ -518,7 +515,14 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
           Icon(icon, size: 20, color: iconColor),
           const SizedBox(width: AppSpacing.md),
           Expanded(
-            child:
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isFirst ? 'Pickup' : 'Destination',
+                  style: AppTextStyles.caption,
+                ),
+                const SizedBox(height: 4),
                 isLoading
                     ? const SizedBox(
                       height: 20,
@@ -563,6 +567,8 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
                         });
                       },
                     ),
+              ],
+            ),
           ),
           if (controller.text.isNotEmpty)
             SizedBox(
@@ -657,7 +663,6 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
   }
 
   Widget _buildSuggestionItem(PlacePrediction suggestion) {
-
     return InkWell(
       onTap: () => _selectSuggestion(suggestion),
       child: Container(
@@ -726,7 +731,20 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
       child: ListView(
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         children: const [
-          // Empty state or saved places can go here
+          Padding(
+            padding: EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Where are you heading?', style: AppTextStyles.heading3),
+                SizedBox(height: 8),
+                Text(
+                  'Search an address or place. Review your pickup before continuing.',
+                  style: AppTextStyles.bodySecondary,
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

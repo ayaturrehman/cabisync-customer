@@ -30,20 +30,12 @@ class RideTypeCard extends StatelessWidget {
         curve: AppAnimations.defaultCurve,
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.brand : AppColors.white,
+          color: isSelected ? AppColors.surface : AppColors.white,
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          border: Border.all(
-            color: isSelected ? AppColors.brand : AppColors.border,
-            width: isSelected ? 2 : 1,
-          ),
         ),
         child: Row(
           children: [
-            Icon(
-              icon,
-              size: 32,
-              color: isSelected ? AppColors.onBrand : AppColors.black,
-            ),
+            Icon(icon, size: 32, color: AppColors.black),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
@@ -52,26 +44,27 @@ class RideTypeCard extends StatelessWidget {
                   Text(
                     name,
                     style: AppTextStyles.heading3.copyWith(
-                      color: isSelected ? AppColors.onBrand : AppColors.black,
+                      color: AppColors.black,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    '$capacity • $estimatedTime',
+                    'Journey · $estimatedTime',
                     style: AppTextStyles.caption.copyWith(
-                      color:
-                          isSelected
-                              ? AppColors.onBrand.withValues(alpha: 0.85)
-                              : AppColors.textSecondary,
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ],
               ),
             ),
+            if (isSelected) ...[
+              const Icon(Icons.check_circle, size: 20),
+              const SizedBox(width: 12),
+            ],
             Text(
               price,
               style: AppTextStyles.heading3.copyWith(
-                color: isSelected ? AppColors.onBrand : AppColors.black,
+                color: AppColors.black,
                 fontWeight: FontWeight.bold,
               ),
             ),

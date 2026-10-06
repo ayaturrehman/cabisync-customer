@@ -148,7 +148,9 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
 
       final paymentMethodId = await _getDefaultPaymentMethod();
       if (paymentMethodId == null) {
-        throw Exception('No payment method found. Please add a card before booking.');
+        throw Exception(
+          'No payment method found. Please add a card before booking.',
+        );
       }
 
       final bookingService = BookingService(ApiService());
@@ -177,12 +179,13 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
         setState(() => _isBooking = false);
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (_) => RideTrackingScreen(
-              pickupLocation: widget.pickupLocation,
-              destinationLocation: widget.destinationLocation,
-              rideType: selectedFare.fleetType ?? 'Economy',
-              bookingId: booking.id,
-            ),
+            builder:
+                (_) => RideTrackingScreen(
+                  pickupLocation: widget.pickupLocation,
+                  destinationLocation: widget.destinationLocation,
+                  rideType: selectedFare.fleetType ?? 'Economy',
+                  bookingId: booking.id,
+                ),
           ),
         );
       }
@@ -206,7 +209,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.white,
-      appBar: const CustomAppBar(title: 'Choose Your Ride'),
+      appBar: const CustomAppBar(title: 'Choose a ride'),
       body: Column(
         children: [
           Expanded(
@@ -219,8 +222,9 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
                         padding: const EdgeInsets.all(AppSpacing.md),
                         decoration: BoxDecoration(
                           color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(AppBorderRadius.md),
-                          border: Border.all(color: AppColors.border),
+                          borderRadius: BorderRadius.circular(
+                            AppBorderRadius.md,
+                          ),
                         ),
                         child: RouteVisualization(
                           pickup: widget.pickupLocation,
@@ -232,7 +236,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
                       .slideY(begin: -0.1, end: 0),
                   const SizedBox(height: AppSpacing.lg),
                   Text(
-                    'Available Rides',
+                    'Available vehicles',
                     style: AppTextStyles.heading3,
                   ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
                   const SizedBox(height: AppSpacing.md),
@@ -253,7 +257,6 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
                       decoration: BoxDecoration(
                         color: AppColors.surface,
                         borderRadius: BorderRadius.circular(AppBorderRadius.md),
-                        border: Border.all(color: AppColors.border),
                       ),
                       child: Column(
                         children: [
@@ -322,7 +325,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
                 text:
                     _fareEstimates.isEmpty
                         ? 'Loading...'
-                        : 'Book ${_fareEstimates[_selectedRideType].formattedTotalFare}',
+                        : 'Confirm ride · ${_fareEstimates[_selectedRideType].formattedTotalFare}',
                 onPressed:
                     _fareEstimates.isEmpty || _isLoadingFares
                         ? null
