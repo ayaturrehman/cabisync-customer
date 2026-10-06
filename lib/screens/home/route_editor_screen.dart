@@ -1,4 +1,10 @@
 import 'dart:async';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/recent_places_store.dart';
+import '../../services/booking_service.dart';
+import '../../services/api_service.dart';
+import '../../widgets/recent_places_list.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../config/theme.dart';
@@ -40,11 +46,15 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
   List<PlacePrediction> _suggestions = [];
   String _activeField = ''; // 'pickup' or 'destination'
   Timer? _debounce;
+  final _recentStore = RecentPlacesStore();
+  List<PlaceDetails> _recentPlaces = [];
+  String? _historyUserId;
 
   @override
   void initState() {
     super.initState();
     _loadCurrentLocation();
+    _loadRecentPlaces();
 
     // Listen to text changes for suggestions
     _pickupController.addListener(_onPickupTextChanged);
@@ -104,10 +114,10 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
 
     try {
       final results = await GooglePlacesService.getPlacePredictions(query);
-      if (mounted) {
-        setState(() {
-          _suggestions = results;
-        });
+      final controller =
+          field == 'pickup' ? _pickupController : _destinationController;
+      if (mounted && _activeField == field && controller.text == query) {
+        setState(() => _suggestions = results);
       }
     } catch (e) {
       if (mounted) {
@@ -118,41 +128,78 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
     }
   }
 
-  Future<void> _selectSuggestion(PlacePrediction prediction) async {
-    // Fetch full place details with coordinates
-    final placeDetails = await GooglePlacesService.getPlaceDetails(
-      prediction.placeId,
-    );
-
-    if (placeDetails == null) return;
-
-    if (_activeField == 'pickup') {
-      setState(() {
-        _pickupLocation = LocationItem(
-          id: placeDetails.placeId,
-          address: placeDetails.formattedAddress,
-          lat: placeDetails.latitude,
-          lng: placeDetails.longitude,
-        );
-        _pickupController.text = prediction.mainText;
-        _suggestions = [];
-        _activeField = '';
-      });
-      FocusScope.of(context).unfocus();
-    } else if (_activeField == 'destination') {
-      setState(() {
-        _destinationLocation = LocationItem(
-          id: placeDetails.placeId,
-          address: placeDetails.formattedAddress,
-          lat: placeDetails.latitude,
-          lng: placeDetails.longitude,
-        );
-        _destinationController.text = prediction.mainText;
-        _suggestions = [];
-        _activeField = '';
-      });
-      FocusScope.of(context).unfocus();
+  Future<void> _loadRecentPlaces() async {
+    final id = context.read<AuthProvider>().user?.id;
+    if (id == null) return;
+    _historyUserId = id.toString();
+    try {
+      var places = await _recentStore.load(_historyUserId!);
+      if (places.isEmpty) {
+        // Existing bookings supply genuine previous places, never sample data.
+        final bookings = await BookingService(ApiService()).getBookingHistory();
+        for (final booking
+            in bookings.take(RecentPlacesStore.limit).toList().reversed) {
+          for (final location in booking.locations) {
+            if (location.type != 'dropoff') continue;
+            places = await _recentStore.remember(
+              _historyUserId!,
+              PlaceDetails(
+                placeId: 'trip_${booking.id}',
+                name: location.address,
+                formattedAddress: location.address,
+                latitude: location.lat,
+                longitude: location.lng,
+              ),
+            );
+          }
+        }
+      }
+      if (mounted) setState(() => _recentPlaces = places);
+    } catch (_) {
+      // Storage/network failure must not prevent manual address selection.
     }
+  }
+
+  Future<void> _selectSuggestion(PlacePrediction prediction) async {
+    final field = _activeField;
+    final place = await GooglePlacesService.getPlaceDetails(prediction.placeId);
+    if (!mounted || place == null || _activeField != field) return;
+    _applyPlace(place, field);
+  }
+
+  void _applyPlace(PlaceDetails place, String field) {
+    if (!RecentPlacesStore.usable(place)) return;
+    final location = LocationItem(
+      id: place.placeId,
+      address: place.formattedAddress,
+      lat: place.latitude,
+      lng: place.longitude,
+    );
+    setState(() {
+      if (field == 'pickup') {
+        _pickupLocation = location;
+        _pickupController.text =
+            place.name.isEmpty ? place.formattedAddress : place.name;
+      } else {
+        _destinationLocation = location;
+        _destinationController.text =
+            place.name.isEmpty ? place.formattedAddress : place.name;
+      }
+      _suggestions = [];
+      _activeField = '';
+    });
+    _debounce?.cancel();
+    FocusScope.of(context).unfocus();
+    _rememberPlace(place);
+  }
+
+  Future<void> _rememberPlace(PlaceDetails place) async {
+    final userId = _historyUserId;
+    if (userId == null) return;
+    try {
+      final places = await _recentStore.remember(userId, place);
+      if (mounted) setState(() => _recentPlaces = places);
+    } catch (_) {}
   }
 
   Future<void> _loadCurrentLocation() async {
@@ -564,6 +611,7 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
                       onTap: () {
                         setState(() {
                           _activeField = isFirst ? 'pickup' : 'destination';
+                          if (controller.text.trim().isEmpty) _suggestions = [];
                         });
                       },
                     ),
@@ -726,6 +774,15 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
   }
 
   Widget _buildDefaultContent() {
+    final pickup = _pickupFocusNode.hasFocus;
+    final controller = pickup ? _pickupController : _destinationController;
+    if (controller.text.trim().isEmpty && _recentPlaces.isNotEmpty) {
+      return RecentPlacesList(
+        places: _recentPlaces,
+        onSelected:
+            (place) => _applyPlace(place, pickup ? 'pickup' : 'destination'),
+      );
+    }
     return Container(
       color: AppColors.white,
       child: ListView(
