@@ -1,3 +1,5 @@
+import '../../widgets/journey_map.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../config/theme.dart';
@@ -71,34 +73,10 @@ class _RideTrackingScreenState extends State<RideTrackingScreen> {
       backgroundColor: AppColors.white,
       body: Stack(
         children: [
-          Container(
-            color: AppColors.surface,
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      borderRadius: BorderRadius.circular(AppBorderRadius.full),
-
-                    ),
-                    child: const Icon(
-                      Icons.map_outlined,
-                      size: 48,
-                      color: AppColors.accent,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Text(
-                    'Live Tracking Map',
-                    style: AppTextStyles.bodySecondary,
-                  ),
-                ],
-              ),
-            ),
+          JourneyMap(
+            locations: _booking?.locations ?? const [],
+            driver: driver?.currentLocation == null ? null : LatLng(
+              driver!.currentLocation!.lat, driver.currentLocation!.lng),
           ),
           SafeArea(
             child: Column(
