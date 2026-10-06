@@ -1,9 +1,8 @@
+import '../../config/map_style.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:provider/provider.dart';
 import '../../config/theme.dart';
-import '../../providers/auth_provider.dart';
 import 'route_editor_screen.dart';
 
 class MapScreen extends StatefulWidget {
@@ -96,7 +95,6 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final name = context.watch<AuthProvider>().user?.name.split(' ').first;
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
@@ -104,16 +102,10 @@ class _MapScreenState extends State<MapScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         automaticallyImplyLeading: false,
-        toolbarHeight: 76,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Book a ride', style: AppTextStyles.heading1),
-            Text(
-              name == null ? 'Where are you heading?' : 'Hello, $name',
-              style: AppTextStyles.caption,
-            ),
-          ],
+        toolbarHeight: 60,
+        title: const Text(
+          'CabiSync Ride',
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
         ),
       ),
       body: Column(
@@ -125,6 +117,7 @@ class _MapScreenState extends State<MapScreen> {
                   const Center(child: CircularProgressIndicator())
                 else
                   GoogleMap(
+                    style: passengerMapStyle,
                     initialCameraPosition: _defaultPosition,
                     myLocationEnabled: _currentPosition != null,
                     myLocationButtonEnabled: false,
@@ -162,7 +155,7 @@ class _MapScreenState extends State<MapScreen> {
           Container(
             width: double.infinity,
             color: Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -174,8 +167,8 @@ class _MapScreenState extends State<MapScreen> {
                     Expanded(
                       child: Text(
                         _currentPosition == null
-                            ? 'Choose your pickup location'
-                            : 'Pickup near your current location',
+                            ? 'Choose pickup'
+                            : 'Current location',
                         style: AppTextStyles.caption,
                       ),
                     ),
@@ -211,11 +204,6 @@ class _MapScreenState extends State<MapScreen> {
                       ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Choose a destination, then review your fare.',
-                  style: AppTextStyles.caption,
                 ),
               ],
             ),

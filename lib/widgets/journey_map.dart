@@ -1,3 +1,4 @@
+import '../config/map_style.dart';
 import '../services/journey_route_service.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -18,8 +19,6 @@ class _JourneyMapState extends State<JourneyMap> {
   List<LatLng> _route = [];
   bool _routeFailed = false;
   int _request = 0;
-  static const _style =
-      '[{"featureType":"poi","stylers":[{"visibility":"off"}]},{"featureType":"transit","stylers":[{"visibility":"off"}]},{"featureType":"landscape","elementType":"geometry","stylers":[{"color":"#f5f6f8"}]},{"featureType":"road","elementType":"geometry","stylers":[{"color":"#ffffff"}]},{"featureType":"water","elementType":"geometry","stylers":[{"color":"#dce8f3"}]}]';
 
   @override
   void initState() {
@@ -120,7 +119,7 @@ class _JourneyMapState extends State<JourneyMap> {
     return Stack(
       children: [
         GoogleMap(
-          style: _style,
+          style: passengerMapStyle,
           polylines: {
             if (_route.isNotEmpty)
               Polyline(
