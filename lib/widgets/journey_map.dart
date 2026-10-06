@@ -1,3 +1,4 @@
+import '../services/journey_route_service.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../models/location_model.dart';
@@ -14,6 +15,38 @@ class JourneyMap extends StatefulWidget {
 
 class _JourneyMapState extends State<JourneyMap> {
   GoogleMapController? _controller;
+  List<LatLng> _route = [];
+  bool _routeFailed = false;
+  int _request = 0;
+  static const _style =
+      '[{"featureType":"poi","stylers":[{"visibility":"off"}]},{"featureType":"transit","stylers":[{"visibility":"off"}]},{"featureType":"landscape","elementType":"geometry","stylers":[{"color":"#f5f6f8"}]},{"featureType":"road","elementType":"geometry","stylers":[{"color":"#ffffff"}]},{"featureType":"water","elementType":"geometry","stylers":[{"color":"#dce8f3"}]}]';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRoute();
+  }
+
+  Future<void> _loadRoute() async {
+    final request = ++_request;
+    final points = _points;
+    try {
+      final route = await JourneyRouteService().route(points);
+      if (!mounted || request != _request) return;
+      setState(() {
+        _route = route;
+        _routeFailed = false;
+      });
+      await _fit();
+    } catch (_) {
+      if (!mounted || request != _request) return;
+      setState(() {
+        _route = [];
+        _routeFailed = points.length > 1;
+      });
+    }
+  }
+
   List<LatLng> get _points => [
     for (final location in widget.locations)
       if (location.lat.isFinite &&
@@ -25,7 +58,7 @@ class _JourneyMapState extends State<JourneyMap> {
   ];
 
   Future<void> _fit() async {
-    final points = _points;
+    final points = [..._points, ..._route];
     if (points.isEmpty || _controller == null) return;
     if (points.length == 1) {
       await _controller!.animateCamera(
@@ -68,6 +101,7 @@ class _JourneyMapState extends State<JourneyMap> {
         .map((p) => '${p.lat},${p.lng}')
         .join(';');
     if (oldPoints != newPoints) {
+      _loadRoute();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _fit();
       });
@@ -83,44 +117,78 @@ class _JourneyMapState extends State<JourneyMap> {
   @override
   Widget build(BuildContext context) {
     final points = _points;
-    return GoogleMap(
-      initialCameraPosition: CameraPosition(
-        target: points.isEmpty ? const LatLng(51.5074, -0.1278) : points.first,
-        zoom: 14,
-      ),
-      zoomControlsEnabled: false,
-      mapToolbarEnabled: false,
-      myLocationButtonEnabled: false,
-      markers: {
-        for (var i = 0; i < points.length; i++)
-          Marker(
-            markerId: MarkerId('stop_$i'),
-            position: points[i],
-            infoWindow: InfoWindow(
-              title:
-                  i == 0
-                      ? 'Pickup'
-                      : i == points.length - 1
-                      ? 'Destination'
-                      : 'Stop $i',
+    return Stack(
+      children: [
+        GoogleMap(
+          style: _style,
+          polylines: {
+            if (_route.isNotEmpty)
+              Polyline(
+                polylineId: const PolylineId('journey'),
+                points: _route,
+                color: const Color(0xff2563eb),
+                width: 5,
+              ),
+          },
+          initialCameraPosition: CameraPosition(
+            target:
+                points.isEmpty ? const LatLng(51.5074, -0.1278) : points.first,
+            zoom: 14,
+          ),
+          zoomControlsEnabled: false,
+          mapToolbarEnabled: false,
+          myLocationButtonEnabled: false,
+          markers: {
+            for (var i = 0; i < points.length; i++)
+              Marker(
+                markerId: MarkerId('stop_$i'),
+                position: points[i],
+                infoWindow: InfoWindow(
+                  title:
+                      i == 0
+                          ? 'Pickup'
+                          : i == points.length - 1
+                          ? 'Destination'
+                          : 'Stop $i',
+                ),
+              ),
+            if (widget.driver != null)
+              Marker(
+                markerId: const MarkerId('driver'),
+                position: widget.driver!,
+                icon: BitmapDescriptor.defaultMarkerWithHue(
+                  BitmapDescriptor.hueAzure,
+                ),
+                infoWindow: const InfoWindow(title: 'Driver'),
+              ),
+          },
+          onMapCreated: (controller) {
+            _controller = controller;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _fit();
+            });
+          },
+        ),
+        if (_routeFailed)
+          Positioned(
+            bottom: 8,
+            left: 16,
+            right: 16,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                color: Colors.white,
+                child: const Text(
+                  'Route preview unavailable',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ),
             ),
           ),
-        if (widget.driver != null)
-          Marker(
-            markerId: const MarkerId('driver'),
-            position: widget.driver!,
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-              BitmapDescriptor.hueAzure,
-            ),
-            infoWindow: const InfoWindow(title: 'Driver'),
-          ),
-      },
-      onMapCreated: (controller) {
-        _controller = controller;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _fit();
-        });
-      },
+      ],
     );
   }
 }
