@@ -275,9 +275,9 @@ class _StatsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final memberYear =
         user?.createdAt != null ? user!.createdAt.year.toString() : '—';
-    final rides = user?.totalRides?.toString() ?? '0';
+    final rides = user?.totalRides?.toString() ?? '—';
     final rating =
-        user?.rating != null ? user!.rating!.toStringAsFixed(1) : '5.0';
+        user?.rating != null ? user!.rating!.toStringAsFixed(1) : '—';
 
     return Row(
       children: [
