@@ -135,7 +135,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppBorderRadius.md),
-              borderSide: const BorderSide(color: AppColors.primary),
+              borderSide: const BorderSide(color: AppColors.brand),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppBorderRadius.md),

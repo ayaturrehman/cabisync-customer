@@ -58,7 +58,7 @@ class RideTypeCard extends StatelessWidget {
               ),
             ),
             if (isSelected) ...[
-              const Icon(Icons.check_circle, size: 20),
+              const Icon(Icons.check_circle, size: 20, color: AppColors.brand),
               const SizedBox(width: 12),
             ],
             Text(

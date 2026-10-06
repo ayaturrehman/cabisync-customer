@@ -216,7 +216,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          borderSide: const BorderSide(color: AppColors.black),
+          borderSide: const BorderSide(color: AppColors.brand),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
@@ -233,7 +233,7 @@ class AppTheme {
 
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: AppColors.white,
-        selectedItemColor: AppColors.black,
+        selectedItemColor: AppColors.brand,
         unselectedItemColor: AppColors.accent,
         elevation: 0,
         type: BottomNavigationBarType.fixed,

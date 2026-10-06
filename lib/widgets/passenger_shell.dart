@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/theme.dart';
 
 /// Visible passenger navigation; tabs are created on first visit and retained.
 class PassengerShell extends StatefulWidget {
@@ -26,7 +27,7 @@ class _PassengerShellState extends State<PassengerShell> {
         currentIndex: _selected,
         onTap: (index) => setState(() => _selected = index),
         backgroundColor: Colors.white,
-        selectedItemColor: Colors.black,
+        selectedItemColor: AppColors.brand,
         unselectedItemColor: const Color(0xFF777777),
         elevation: 0,
         items: const [
