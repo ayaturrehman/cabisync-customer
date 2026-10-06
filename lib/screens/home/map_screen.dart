@@ -1,3 +1,4 @@
+import '../../services/pickup_lookup_session.dart';
 import '../../config/map_style.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -13,6 +14,7 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
+  final _pickupLookup = PickupLookupSession();
   GoogleMapController? _mapController;
   Position? _currentPosition;
   bool _isLoadingLocation = true;
@@ -88,7 +90,11 @@ class _MapScreenState extends State<MapScreen> {
   void _openRouteEditor() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => RouteEditorScreen(currentPosition: _currentPosition),
+        builder:
+            (_) => RouteEditorScreen(
+              currentPosition: _currentPosition,
+              pickupLookup: _pickupLookup,
+            ),
       ),
     );
   }

@@ -1,3 +1,4 @@
+import '../../services/pickup_lookup_session.dart';
 import '../../services/places_search_session.dart';
 import '../../models/location_model.dart';
 import 'dart:async';
@@ -25,14 +26,16 @@ class LocationItem {
 
 class RouteEditorScreen extends StatefulWidget {
   final Position? currentPosition;
+  final PickupLookupSession? pickupLookup;
 
-  const RouteEditorScreen({super.key, this.currentPosition});
+  const RouteEditorScreen({super.key, this.currentPosition, this.pickupLookup});
 
   @override
   State<RouteEditorScreen> createState() => _RouteEditorScreenState();
 }
 
 class _RouteEditorScreenState extends State<RouteEditorScreen> {
+  late final _pickupLookup = widget.pickupLookup ?? PickupLookupSession();
   final TextEditingController _pickupController = TextEditingController();
   final TextEditingController _destinationController = TextEditingController();
   final FocusNode _pickupFocusNode = FocusNode();
@@ -224,12 +227,12 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
       }
 
       if (position != null) {
-        final placeDetails = await GooglePlacesService.reverseGeocode(
+        final placeDetails = await _pickupLookup.lookup(
           position.latitude,
           position.longitude,
         );
 
-        if (placeDetails != null && mounted) {
+        if (placeDetails != null && mounted && _pickupLocation == null) {
           setState(() {
             _pickupLocation = LocationItem(
               id: 'current_location',
