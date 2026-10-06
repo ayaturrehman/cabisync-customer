@@ -86,9 +86,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
         if (widget.label != null) ...[
           Text(
             widget.label!,
-            style: AppTextStyles.caption.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+            style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: AppSpacing.sm),
         ],
@@ -108,37 +106,36 @@ class _CustomTextFieldState extends State<CustomTextField> {
             hintText: widget.hint,
             hintStyle: AppTextStyles.hint,
             filled: true,
-            fillColor: widget.enabled ? AppColors.white : AppColors.surface,
+            fillColor: AppColors.surface,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.md,
               vertical: AppSpacing.md,
             ),
-            prefixIcon: widget.prefixIcon != null
-                ? Icon(
-                    widget.prefixIcon,
-                    color: _isFocused ? AppColors.primary : AppColors.accent,
-                  )
-                : null,
-            suffixIcon: widget.suffixIcon != null
-                ? IconButton(
-                    icon: Icon(
-                      widget.suffixIcon,
-                      color: AppColors.accent,
-                    ),
-                    onPressed: widget.onSuffixIconTap,
-                  )
-                : null,
+            prefixIcon:
+                widget.prefixIcon != null
+                    ? Icon(
+                      widget.prefixIcon,
+                      color: _isFocused ? AppColors.primary : AppColors.accent,
+                    )
+                    : null,
+            suffixIcon:
+                widget.suffixIcon != null
+                    ? IconButton(
+                      icon: Icon(widget.suffixIcon, color: AppColors.accent),
+                      onPressed: widget.onSuffixIconTap,
+                    )
+                    : null,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppBorderRadius.md),
-              borderSide: const BorderSide(color: AppColors.border, width: 1),
+              borderSide: BorderSide.none,
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppBorderRadius.md),
-              borderSide: const BorderSide(color: AppColors.border, width: 1),
+              borderSide: BorderSide.none,
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppBorderRadius.md),
-              borderSide: const BorderSide(color: AppColors.primary, width: 2),
+              borderSide: const BorderSide(color: AppColors.primary),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppBorderRadius.md),

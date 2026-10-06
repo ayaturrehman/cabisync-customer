@@ -85,7 +85,7 @@ class CustomButton extends StatelessWidget {
           style: TextStyle(
             fontSize: fontSize,
             fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
+            letterSpacing: 0,
           ),
         ),
       ],
@@ -98,7 +98,8 @@ class CustomButton extends StatelessWidget {
           child: ElevatedButton(
             onPressed: isDisabled ? null : onPressed,
             style: ElevatedButton.styleFrom(
-              backgroundColor: isDisabled ? AppColors.disabled : AppColors.primary,
+              backgroundColor:
+                  isDisabled ? AppColors.disabled : AppColors.primary,
               foregroundColor: AppColors.white,
               elevation: 0,
               padding: padding,
@@ -116,10 +117,11 @@ class CustomButton extends StatelessWidget {
           child: OutlinedButton(
             onPressed: isDisabled ? null : onPressed,
             style: OutlinedButton.styleFrom(
-              foregroundColor: isDisabled ? AppColors.disabled : AppColors.brand,
+              foregroundColor:
+                  isDisabled ? AppColors.disabled : AppColors.black,
               side: BorderSide(
-                color: isDisabled ? AppColors.disabled : AppColors.brand,
-                width: 2,
+                color: isDisabled ? AppColors.disabled : AppColors.black,
+                width: 1,
               ),
               padding: padding,
               shape: RoundedRectangleBorder(
@@ -136,7 +138,8 @@ class CustomButton extends StatelessWidget {
           child: TextButton(
             onPressed: isDisabled ? null : onPressed,
             style: TextButton.styleFrom(
-              foregroundColor: isDisabled ? AppColors.disabled : AppColors.brand,
+              foregroundColor:
+                  isDisabled ? AppColors.disabled : AppColors.black,
               padding: padding,
             ),
             child: buttonChild,

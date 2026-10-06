@@ -17,8 +17,8 @@ class CustomCard extends StatelessWidget {
     this.padding,
     this.margin,
     this.onTap,
-    this.showBorder = true,
-    this.showShadow = true,
+    this.showBorder = false,
+    this.showShadow = false,
     this.backgroundColor,
     this.borderRadius,
   });
@@ -30,18 +30,18 @@ class CustomCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: backgroundColor ?? AppColors.white,
         borderRadius: BorderRadius.circular(borderRadius ?? AppBorderRadius.md),
-        border: showBorder
-            ? Border.all(color: AppColors.border, width: 1)
-            : null,
-        boxShadow: showShadow
-            ? [
-                BoxShadow(
-                  color: AppColors.black.withOpacity(0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ]
-            : null,
+        border:
+            showBorder ? Border.all(color: AppColors.border, width: 1) : null,
+        boxShadow:
+            showShadow
+                ? [
+                  BoxShadow(
+                    color: AppColors.black.withValues(alpha: 0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+                : null,
       ),
       child: Padding(
         padding: padding ?? const EdgeInsets.all(AppSpacing.md),

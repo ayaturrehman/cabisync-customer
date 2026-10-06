@@ -25,9 +25,9 @@ class AppColors {
   static const onError = Color(0xFFFFFFFF);
 
   // Error tints — used for destructive actions (logout, delete)
-  static const errorLight  = Color(0xFFFFEBEE);
+  static const errorLight = Color(0xFFFFEBEE);
   static const errorBorder = Color(0xFFFFCDD2);
-  static const errorText   = Color(0xFFD32F2F);
+  static const errorText = Color(0xFFD32F2F);
 }
 
 class AppTextStyles {
@@ -37,48 +37,45 @@ class AppTextStyles {
     color: AppColors.textPrimary,
     letterSpacing: -0.5,
   );
-  
+
   static const heading2 = TextStyle(
     fontSize: 24,
     fontWeight: FontWeight.bold,
     color: AppColors.textPrimary,
     letterSpacing: -0.3,
   );
-  
+
   static const heading3 = TextStyle(
     fontSize: 18,
     fontWeight: FontWeight.w600,
     color: AppColors.textPrimary,
   );
-  
+
   static const body = TextStyle(
     fontSize: 16,
     color: AppColors.textPrimary,
     height: 1.5,
   );
-  
+
   static const bodySecondary = TextStyle(
     fontSize: 16,
     color: AppColors.textSecondary,
     height: 1.5,
   );
-  
+
   static const caption = TextStyle(
     fontSize: 14,
     color: AppColors.textSecondary,
   );
-  
-  static const hint = TextStyle(
-    fontSize: 14,
-    color: AppColors.textHint,
-  );
-  
+
+  static const hint = TextStyle(fontSize: 14, color: AppColors.textHint);
+
   static const button = TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.w600,
-    letterSpacing: 0.5,
+    letterSpacing: 0,
   );
-  
+
   static const overline = TextStyle(
     fontSize: 12,
     fontWeight: FontWeight.w500,
@@ -98,9 +95,9 @@ class AppSpacing {
 
 class AppBorderRadius {
   static const sm = 8.0;
-  static const md = 12.0;
-  static const lg = 16.0;
-  static const xl = 24.0;
+  static const md = 8.0;
+  static const lg = 8.0;
+  static const xl = 8.0;
   static const full = 999.0;
 }
 
@@ -116,7 +113,7 @@ class AppAnimations {
   static const Duration fast = Duration(milliseconds: 200);
   static const Duration medium = Duration(milliseconds: 300);
   static const Duration slow = Duration(milliseconds: 500);
-  
+
   static const Curve defaultCurve = Curves.easeInOut;
   static const Curve enterCurve = Curves.easeOut;
   static const Curve exitCurve = Curves.easeIn;
@@ -129,7 +126,7 @@ class AppTheme {
       brightness: Brightness.light,
       primaryColor: AppColors.primary,
       scaffoldBackgroundColor: AppColors.background,
-      
+
       colorScheme: const ColorScheme.light(
         primary: AppColors.primary,
         secondary: AppColors.secondary,
@@ -141,25 +138,25 @@ class AppTheme {
         onSurface: AppColors.onSurface,
         onError: AppColors.onError,
       ),
-      
+
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.white,
         foregroundColor: AppColors.black,
         elevation: 0,
-        centerTitle: true,
+        centerTitle: false,
         iconTheme: IconThemeData(color: AppColors.black),
-        titleTextStyle: AppTextStyles.heading3,
+        titleTextStyle: AppTextStyles.heading2,
       ),
-      
+
       cardTheme: CardThemeData(
         color: AppColors.white,
-        elevation: AppElevation.sm,
+        elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          side: const BorderSide(color: AppColors.border, width: 1),
+          side: BorderSide.none,
         ),
       ),
-      
+
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
@@ -175,11 +172,11 @@ class AppTheme {
           textStyle: AppTextStyles.button,
         ),
       ),
-      
+
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.brand,
-          side: const BorderSide(color: AppColors.brand, width: 2),
+          foregroundColor: AppColors.black,
+          side: const BorderSide(color: AppColors.border),
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.lg,
             vertical: AppSpacing.md,
@@ -190,10 +187,10 @@ class AppTheme {
           textStyle: AppTextStyles.button,
         ),
       ),
-      
+
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: AppColors.brand,
+          foregroundColor: AppColors.black,
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.md,
             vertical: AppSpacing.sm,
@@ -201,25 +198,25 @@ class AppTheme {
           textStyle: AppTextStyles.button,
         ),
       ),
-      
+
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.white,
+        fillColor: AppColors.surface,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
           vertical: AppSpacing.md,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          borderSide: const BorderSide(color: AppColors.border, width: 1),
+          borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          borderSide: const BorderSide(color: AppColors.border, width: 1),
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          borderSide: const BorderSide(color: AppColors.brand, width: 2),
+          borderSide: const BorderSide(color: AppColors.black),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
@@ -233,12 +230,12 @@ class AppTheme {
         hintStyle: AppTextStyles.hint,
         errorStyle: const TextStyle(color: AppColors.error),
       ),
-      
+
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: AppColors.white,
-        selectedItemColor: AppColors.brand,
+        selectedItemColor: AppColors.black,
         unselectedItemColor: AppColors.accent,
-        elevation: AppElevation.md,
+        elevation: 0,
         type: BottomNavigationBarType.fixed,
         selectedLabelStyle: TextStyle(
           fontSize: 12,
@@ -249,22 +246,19 @@ class AppTheme {
           fontWeight: FontWeight.normal,
         ),
       ),
-      
+
       dividerTheme: const DividerThemeData(
         color: AppColors.border,
         thickness: 1,
         space: 1,
       ),
-      
-      iconTheme: const IconThemeData(
-        color: AppColors.black,
-        size: 24,
-      ),
-      
+
+      iconTheme: const IconThemeData(color: AppColors.black, size: 24),
+
       progressIndicatorTheme: const ProgressIndicatorThemeData(
         color: AppColors.brand,
       ),
-      
+
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.black,
         contentTextStyle: AppTextStyles.body.copyWith(color: AppColors.white),
@@ -273,16 +267,16 @@ class AppTheme {
         ),
         behavior: SnackBarBehavior.floating,
       ),
-      
+
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppBorderRadius.lg),
         ),
-        titleTextStyle: AppTextStyles.heading3,
+        titleTextStyle: AppTextStyles.heading2,
         contentTextStyle: AppTextStyles.body,
       ),
-      
+
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: AppColors.white,
         shape: RoundedRectangleBorder(
