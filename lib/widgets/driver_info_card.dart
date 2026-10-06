@@ -25,50 +25,44 @@ class DriverInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(AppBorderRadius.lg),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.1),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Row(
         children: [
           Container(
-            width: 60,
-            height: 60,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.black, width: 2),
               color: AppColors.surface,
             ),
             child: ClipOval(
-              child: photoUrl != null
-                  ? CachedNetworkImage(
-                      imageUrl: photoUrl!,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => const Icon(
+              child:
+                  photoUrl != null
+                      ? CachedNetworkImage(
+                        imageUrl: photoUrl!,
+                        fit: BoxFit.cover,
+                        placeholder:
+                            (context, url) => const Icon(
+                              Icons.person,
+                              size: 32,
+                              color: AppColors.accent,
+                            ),
+                        errorWidget:
+                            (context, url, error) => const Icon(
+                              Icons.person,
+                              size: 32,
+                              color: AppColors.accent,
+                            ),
+                      )
+                      : const Icon(
                         Icons.person,
                         size: 32,
                         color: AppColors.accent,
                       ),
-                      errorWidget: (context, url, error) => const Icon(
-                        Icons.person,
-                        size: 32,
-                        color: AppColors.accent,
-                      ),
-                    )
-                  : const Icon(
-                      Icons.person,
-                      size: 32,
-                      color: AppColors.accent,
-                    ),
             ),
           ),
           const SizedBox(width: AppSpacing.md),
@@ -78,12 +72,7 @@ class DriverInfoCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Expanded(
-                      child: Text(
-                        name,
-                        style: AppTextStyles.heading3,
-                      ),
-                    ),
+                    Expanded(child: Text(name, style: AppTextStyles.heading3)),
                     const Icon(Icons.star, size: 16, color: AppColors.black),
                     const SizedBox(width: AppSpacing.xs),
                     Text(
@@ -95,10 +84,7 @@ class DriverInfoCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: AppSpacing.xs),
-                Text(
-                  vehicleInfo,
-                  style: AppTextStyles.caption,
-                ),
+                Text(vehicleInfo, style: AppTextStyles.caption),
                 Text(
                   plateNumber,
                   style: AppTextStyles.caption.copyWith(
@@ -113,6 +99,7 @@ class DriverInfoCard extends StatelessWidget {
             children: [
               if (onCallTap != null)
                 IconButton(
+                  tooltip: 'Call driver',
                   onPressed: onCallTap,
                   icon: const Icon(Icons.phone),
                   style: IconButton.styleFrom(
@@ -123,6 +110,7 @@ class DriverInfoCard extends StatelessWidget {
               if (onMessageTap != null) ...[
                 const SizedBox(height: AppSpacing.xs),
                 IconButton(
+                  tooltip: 'Message driver',
                   onPressed: onMessageTap,
                   icon: const Icon(Icons.message),
                   style: IconButton.styleFrom(

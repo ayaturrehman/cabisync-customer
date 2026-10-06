@@ -83,7 +83,7 @@ class _RideTrackingScreenState extends State<RideTrackingScreen> {
                     decoration: BoxDecoration(
                       color: AppColors.white,
                       borderRadius: BorderRadius.circular(AppBorderRadius.full),
-                      border: Border.all(color: AppColors.border, width: 2),
+                      
                     ),
                     child: const Icon(
                       Icons.map_outlined,
@@ -125,7 +125,7 @@ class _RideTrackingScreenState extends State<RideTrackingScreen> {
                           decoration: BoxDecoration(
                             color: AppColors.white,
                             borderRadius: BorderRadius.circular(AppBorderRadius.md),
-                            border: Border.all(color: AppColors.border),
+                            
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,7 +190,7 @@ class _RideTrackingScreenState extends State<RideTrackingScreen> {
                     decoration: BoxDecoration(
                       color: AppColors.white,
                       borderRadius: BorderRadius.circular(AppBorderRadius.lg),
-                      border: Border.all(color: AppColors.border),
+                      
                     ),
                     child: Column(
                       children: [
