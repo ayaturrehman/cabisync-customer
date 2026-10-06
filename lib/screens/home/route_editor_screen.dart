@@ -77,6 +77,7 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
 
     // Auto-focus destination field
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       _destinationFocusNode.requestFocus();
     });
   }
@@ -242,49 +243,45 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
   Future<void> _loadCurrentLocation() async {
     try {
       Position? position = widget.currentPosition;
-
       if (position == null) {
-        final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-        if (serviceEnabled) {
-          final permission = await Geolocator.checkPermission();
+        final enabled = await Geolocator.isLocationServiceEnabled().timeout(
+          const Duration(seconds: 3),
+        );
+        if (enabled) {
+          final permission = await Geolocator.checkPermission().timeout(
+            const Duration(seconds: 3),
+          );
           if (permission == LocationPermission.always ||
               permission == LocationPermission.whileInUse) {
-            position = await Geolocator.getCurrentPosition();
+            position = await Geolocator.getCurrentPosition().timeout(
+              const Duration(seconds: 8),
+            );
           }
         }
       }
-
-      if (position != null) {
-        final placeDetails = await _pickupLookup.lookup(
-          position.latitude,
-          position.longitude,
+      if (position == null || !mounted) return;
+      final place = await _pickupLookup
+          .lookup(position.latitude, position.longitude)
+          .timeout(const Duration(seconds: 10));
+      if (!mounted ||
+          place == null ||
+          _pickupLocation != null ||
+          _pickupController.text.isNotEmpty ||
+          _pickupFocusNode.hasFocus)
+        return;
+      setState(() {
+        _pickupLocation = LocationItem(
+          id: 'current_location',
+          address: place.formattedAddress,
+          lat: position!.latitude,
+          lng: position.longitude,
         );
-
-        if (placeDetails != null && mounted && _pickupLocation == null) {
-          setState(() {
-            _pickupLocation = LocationItem(
-              id: 'current_location',
-              address: placeDetails.formattedAddress,
-              lat: position!.latitude,
-              lng: position.longitude,
-            );
-            _pickupController.text = placeDetails.name;
-            _isLoadingPickup = false;
-          });
-        }
-      } else {
-        setState(() {
-          _pickupController.text = 'Current Location';
-          _isLoadingPickup = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _pickupController.text = 'Current Location';
-          _isLoadingPickup = false;
-        });
-      }
+        _pickupController.text = place.formattedAddress;
+      });
+    } catch (_) {
+      // Manual pickup remains available when GPS or address lookup fails.
+    } finally {
+      if (mounted) setState(() => _isLoadingPickup = false);
     }
   }
 
