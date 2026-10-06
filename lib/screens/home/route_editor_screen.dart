@@ -657,7 +657,6 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
   }
 
   Widget _buildSuggestionItem(PlacePrediction suggestion) {
-    final distance = '${(2.0 + (suggestion.placeId.hashCode % 10))} mi';
 
     return InkWell(
       onTap: () => _selectSuggestion(suggestion),
@@ -713,13 +712,6 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
                     ),
                   ],
                 ],
-              ),
-            ),
-            Text(
-              distance,
-              style: AppTextStyles.caption.copyWith(
-                color: AppColors.textSecondary,
-                fontSize: 12,
               ),
             ),
           ],
