@@ -44,7 +44,7 @@ class PlaceDetails {
     final location = json['geometry']?['location'];
     return PlaceDetails(
       placeId: json['place_id'] ?? '',
-      name: json['name'] ?? '',
+      name: json['name'] ?? json['formatted_address'] ?? '',
       formattedAddress: json['formatted_address'] ?? '',
       latitude: location != null ? (location['lat'] as num?)?.toDouble() : null,
       longitude:
