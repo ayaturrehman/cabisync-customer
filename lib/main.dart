@@ -35,6 +35,14 @@ class CabiSyncApp extends StatelessWidget {
       child: MaterialApp(
         title: 'CabiSync Customer',
         debugShowCheckedModeBanner: false,
+        builder: (context, child) => ColoredBox(
+          color: Colors.white,
+          child: SafeArea(
+            bottom: false,
+            minimum: const EdgeInsets.only(top: 16),
+            child: child ?? const SizedBox.shrink(),
+          ),
+        ),
         theme: AppTheme.lightTheme,
         home: const AuthWrapper(),
         routes: {'/home': (context) => const HomeScreen()},
