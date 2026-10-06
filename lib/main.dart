@@ -39,7 +39,9 @@ class CabiSyncApp extends StatelessWidget {
           color: Colors.white,
           child: SafeArea(
             bottom: false,
-            minimum: const EdgeInsets.only(top: 16),
+            minimum: EdgeInsets.only(
+              top: Theme.of(context).platform == TargetPlatform.iOS ? 56 : 0,
+            ),
             child: child ?? const SizedBox.shrink(),
           ),
         ),
