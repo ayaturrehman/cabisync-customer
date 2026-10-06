@@ -10,6 +10,7 @@ class JourneyRouteSession {
     : _fetch = fetch ?? JourneyRouteService().route;
 
   Future<List<LatLng>> route(List<LatLng> points) {
+    if (points.length < 2) return Future.value([]);
     final key = points.map((p) => '${p.latitude},${p.longitude}').join(';');
     if (_key == key && _pending != null) return _pending!;
     _key = key;
