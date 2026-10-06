@@ -1,3 +1,4 @@
+import '../../services/journey_route_session.dart';
 import '../../widgets/journey_map.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -41,6 +42,7 @@ class RideBookingScreen extends StatefulWidget {
 }
 
 class _RideBookingScreenState extends State<RideBookingScreen> {
+  final _routeSession = JourneyRouteSession();
   int _selectedRideType = 0;
   bool _isBooking = false;
   bool _isLoadingFares = true;
@@ -192,6 +194,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
                   destinationLocation: widget.destinationLocation,
                   rideType: selectedFare.fleetType ?? 'Economy',
                   bookingId: booking.id,
+                  routeSession: _routeSession,
                 ),
           ),
         );
@@ -222,6 +225,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
           SizedBox(
             height: MediaQuery.sizeOf(context).height * .34,
             child: JourneyMap(
+              routeSession: _routeSession,
               locations: [
                 LocationModel(
                   lat: widget.pickupLat,

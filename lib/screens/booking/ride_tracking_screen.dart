@@ -1,3 +1,4 @@
+import '../../services/journey_route_session.dart';
 import '../../widgets/journey_map.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ class RideTrackingScreen extends StatefulWidget {
   final String destinationLocation;
   final String rideType;
   final int? bookingId;
+  final JourneyRouteSession? routeSession;
 
   const RideTrackingScreen({
     super.key,
@@ -18,6 +20,7 @@ class RideTrackingScreen extends StatefulWidget {
     required this.destinationLocation,
     required this.rideType,
     this.bookingId,
+    this.routeSession,
   });
 
   @override
@@ -74,6 +77,7 @@ class _RideTrackingScreenState extends State<RideTrackingScreen> {
       body: Stack(
         children: [
           JourneyMap(
+            routeSession: widget.routeSession,
             locations: _booking?.locations ?? const [],
             driver: driver?.currentLocation == null ? null : LatLng(
               driver!.currentLocation!.lat, driver.currentLocation!.lng),

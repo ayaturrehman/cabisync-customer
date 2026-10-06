@@ -1,5 +1,5 @@
 import '../config/map_style.dart';
-import '../services/journey_route_service.dart';
+import '../services/journey_route_session.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../models/location_model.dart';
@@ -8,7 +8,13 @@ import '../models/location_model.dart';
 class JourneyMap extends StatefulWidget {
   final List<LocationModel> locations;
   final LatLng? driver;
-  const JourneyMap({super.key, required this.locations, this.driver});
+  final JourneyRouteSession? routeSession;
+  const JourneyMap({
+    super.key,
+    required this.locations,
+    this.driver,
+    this.routeSession,
+  });
 
   @override
   State<JourneyMap> createState() => _JourneyMapState();
@@ -16,6 +22,8 @@ class JourneyMap extends StatefulWidget {
 
 class _JourneyMapState extends State<JourneyMap> {
   GoogleMapController? _controller;
+  late final JourneyRouteSession _session =
+      widget.routeSession ?? JourneyRouteSession();
   List<LatLng> _route = [];
   bool _routeFailed = false;
   int _request = 0;
@@ -30,7 +38,7 @@ class _JourneyMapState extends State<JourneyMap> {
     final request = ++_request;
     final points = _points;
     try {
-      final route = await JourneyRouteService().route(points);
+      final route = await _session.route(points);
       if (!mounted || request != _request) return;
       setState(() {
         _route = route;
