@@ -13,7 +13,7 @@ class RecentPlacesList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.symmetric(vertical: 16),
+    padding: const EdgeInsets.symmetric(vertical: 8),
     children: [
       const Padding(
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -23,14 +23,17 @@ class RecentPlacesList extends StatelessWidget {
         (place) => ListTile(
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
-            vertical: 4,
+            vertical: 2,
           ),
           leading: const Icon(
             Icons.history,
             color: AppColors.textSecondary,
             size: 22,
           ),
-          title: Text(place.name.isEmpty ? place.formattedAddress : place.name),
+          title: Text(
+            place.name.isEmpty ? place.formattedAddress : place.name,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          ),
           subtitle:
               place.name != place.formattedAddress
                   ? Text(
