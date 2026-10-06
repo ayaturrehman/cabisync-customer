@@ -58,15 +58,23 @@ class GooglePlacesService {
   static final String _apiKey = AppConfig.googleApiKey;
 
   // Get place predictions (autocomplete)
-  static Future<List<PlacePrediction>> getPlacePredictions(String input) async {
-    if (input.isEmpty) return [];
+  static Future<List<PlacePrediction>> getPlacePredictions(
+    String input, {
+    String? sessionToken,
+  }) async {
+    if (input.trim().length < 3) return [];
 
     try {
-      final url = Uri.parse(
-        '$_baseUrl/place/autocomplete/json?input=$input&key=$_apiKey&components=country:gb',
+      final url = Uri.https(
+        'maps.googleapis.com',
+        '/maps/api/place/autocomplete/json',
+        {
+          'input': input.trim(),
+          'key': _apiKey,
+          'components': 'country:gb',
+          if (sessionToken != null) 'sessiontoken': sessionToken,
+        },
       );
-
-      print('GooglePlaces: Requesting URL: $url');
 
       final response = await http
           .get(url)
@@ -77,9 +85,6 @@ class GooglePlacesService {
             },
           );
 
-      print('GooglePlaces: Response status: ${response.statusCode}');
-      print('GooglePlaces: Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
@@ -88,33 +93,34 @@ class GooglePlacesService {
               (data['predictions'] as List)
                   .map((json) => PlacePrediction.fromJson(json))
                   .toList();
-          print('GooglePlaces: Parsed ${predictions.length} predictions');
           return predictions;
         } else if (data['status'] == 'ZERO_RESULTS') {
-          print('GooglePlaces: Zero results for query');
           return [];
         } else {
-          print('GooglePlaces: API error status: ${data['status']}');
-          if (data['error_message'] != null) {
-            print('GooglePlaces: Error message: ${data['error_message']}');
-          }
+          if (data['error_message'] != null) {}
           throw Exception('Places API error: ${data['status']}');
         }
       } else {
         throw Exception('Failed to fetch predictions: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching place predictions: $e');
       rethrow;
     }
   }
 
   // Get place details
-  static Future<PlaceDetails?> getPlaceDetails(String placeId) async {
+  static Future<PlaceDetails?> getPlaceDetails(
+    String placeId, {
+    String? sessionToken,
+  }) async {
     try {
-      final url = Uri.parse(
-        '$_baseUrl/place/details/json?place_id=$placeId&key=$_apiKey&fields=place_id,name,formatted_address,geometry',
-      );
+      final url =
+          Uri.https('maps.googleapis.com', '/maps/api/place/details/json', {
+            'place_id': placeId,
+            'key': _apiKey,
+            'fields': 'place_id,name,formatted_address,geometry',
+            if (sessionToken != null) 'sessiontoken': sessionToken,
+          });
 
       final response = await http
           .get(url)
@@ -139,7 +145,6 @@ class GooglePlacesService {
         );
       }
     } catch (e) {
-      print('Error fetching place details: $e');
       return null;
     }
   }
@@ -173,7 +178,6 @@ class GooglePlacesService {
         throw Exception('Failed to reverse geocode: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error reverse geocoding: $e');
       return null;
     }
   }

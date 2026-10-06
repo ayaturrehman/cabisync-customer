@@ -1,3 +1,4 @@
+import '../services/places_search_session.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/google_places_service.dart';
@@ -65,6 +66,7 @@ class _PlaceAutocompleteInputState extends State<PlaceAutocompleteInput> {
   final LayerLink _layerLink = LayerLink();
   OverlayEntry? _overlayEntry;
   List<PlacePrediction> _predictions = [];
+  final _placesSession = PlacesSearchSession();
   Timer? _debounceTimer;
   bool _isSearching = false;
 
@@ -86,13 +88,11 @@ class _PlaceAutocompleteInputState extends State<PlaceAutocompleteInput> {
     if (widget.readOnly) return;
 
     final text = widget.controller.text;
-    print('PlaceAutocomplete: Text changed to "$text"');
     widget.onChanged?.call(text);
 
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(milliseconds: 500), () {
       if (text.isNotEmpty) {
-        print('PlaceAutocomplete: Searching for "$text"');
         _searchPlaces(text);
       } else {
         _removeOverlay();
@@ -102,13 +102,10 @@ class _PlaceAutocompleteInputState extends State<PlaceAutocompleteInput> {
 
   Future<void> _searchPlaces(String query) async {
     if (query.isEmpty) return;
-
-    print('PlaceAutocomplete: Starting search for "$query"');
     setState(() => _isSearching = true);
 
     try {
-      final predictions = await GooglePlacesService.getPlacePredictions(query);
-      print('PlaceAutocomplete: Received ${predictions.length} predictions');
+      final predictions = await _placesSession.predictions(query);
 
       if (mounted) {
         setState(() {
@@ -116,17 +113,12 @@ class _PlaceAutocompleteInputState extends State<PlaceAutocompleteInput> {
           _isSearching = false;
         });
         if (predictions.isNotEmpty) {
-          print(
-            'PlaceAutocomplete: Showing overlay with ${predictions.length} results',
-          );
           _showOverlay();
         } else {
-          print('PlaceAutocomplete: No predictions, removing overlay');
           _removeOverlay();
         }
       }
     } catch (e) {
-      print('PlaceAutocomplete: Error searching places: $e');
       if (mounted) {
         setState(() => _isSearching = false);
         _removeOverlay();
@@ -139,13 +131,8 @@ class _PlaceAutocompleteInputState extends State<PlaceAutocompleteInput> {
 
     // Check if widget is still mounted and has context
     if (!mounted || context.findRenderObject() == null) {
-      print(
-        'PlaceAutocomplete: Cannot show overlay - widget not properly mounted',
-      );
       return;
     }
-
-    print('PlaceAutocomplete: Creating and showing overlay');
     _overlayEntry = _createOverlayEntry();
     Overlay.of(context).insert(_overlayEntry!);
   }
@@ -216,9 +203,7 @@ class _PlaceAutocompleteInputState extends State<PlaceAutocompleteInput> {
     widget.focusNode?.unfocus();
 
     // Fetch place details to get coordinates
-    final details = await GooglePlacesService.getPlaceDetails(
-      prediction.placeId,
-    );
+    final details = await _placesSession.select(prediction.placeId);
     if (details != null && widget.onPlaceSelected != null) {
       widget.onPlaceSelected!(
         PlaceDetail(

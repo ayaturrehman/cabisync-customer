@@ -1,3 +1,4 @@
+import '../../services/places_search_session.dart';
 import '../../models/location_model.dart';
 import 'dart:async';
 import 'package:provider/provider.dart';
@@ -45,6 +46,10 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
 
   // For handling suggestions
   List<PlacePrediction> _suggestions = [];
+  final _searchSessions = {
+    'pickup': PlacesSearchSession(),
+    'destination': PlacesSearchSession(),
+  };
   String _activeField = ''; // 'pickup' or 'destination'
   Timer? _debounce;
   final _recentStore = RecentPlacesStore();
@@ -114,7 +119,7 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
     });
 
     try {
-      final results = await GooglePlacesService.getPlacePredictions(query);
+      final results = await _searchSessions[field]!.predictions(query);
       final controller =
           field == 'pickup' ? _pickupController : _destinationController;
       if (mounted && _activeField == field && controller.text == query) {
@@ -163,7 +168,7 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
 
   Future<void> _selectSuggestion(PlacePrediction prediction) async {
     final field = _activeField;
-    final place = await GooglePlacesService.getPlaceDetails(prediction.placeId);
+    final place = await _searchSessions[field]!.select(prediction.placeId);
     if (!mounted || place == null || _activeField != field) return;
     _applyPlace(place, field);
   }
@@ -848,6 +853,7 @@ class _StopInputSheetState extends State<_StopInputSheet> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   List<PlacePrediction> _suggestions = [];
+  final _placesSession = PlacesSearchSession();
   Timer? _debounce;
 
   @override
@@ -882,8 +888,8 @@ class _StopInputSheetState extends State<_StopInputSheet> {
 
   Future<void> _searchPlaces(String query) async {
     try {
-      final results = await GooglePlacesService.getPlacePredictions(query);
-      if (mounted) {
+      final results = await _placesSession.predictions(query);
+      if (mounted && _controller.text == query) {
         setState(() {
           _suggestions = results;
         });
@@ -898,11 +904,9 @@ class _StopInputSheetState extends State<_StopInputSheet> {
   }
 
   Future<void> _selectPlace(PlacePrediction prediction) async {
-    final placeDetails = await GooglePlacesService.getPlaceDetails(
-      prediction.placeId,
-    );
+    final placeDetails = await _placesSession.select(prediction.placeId);
 
-    if (placeDetails != null) {
+    if (placeDetails != null && mounted) {
       widget.onStopAdded(
         LocationItem(
           id: placeDetails.placeId,
