@@ -107,7 +107,7 @@ class _PlaceAutocompleteInputState extends State<PlaceAutocompleteInput> {
     try {
       final predictions = await _placesSession.predictions(query);
 
-      if (mounted) {
+      if (mounted && widget.controller.text.trim() == query.trim()) {
         setState(() {
           _predictions = predictions;
           _isSearching = false;
@@ -200,11 +200,12 @@ class _PlaceAutocompleteInputState extends State<PlaceAutocompleteInput> {
   Future<void> _selectPlace(PlacePrediction prediction) async {
     _removeOverlay();
     widget.controller.text = prediction.description;
+    _debounceTimer?.cancel();
     widget.focusNode?.unfocus();
 
     // Fetch place details to get coordinates
     final details = await _placesSession.select(prediction.placeId);
-    if (details != null && widget.onPlaceSelected != null) {
+    if (mounted && details != null && widget.onPlaceSelected != null) {
       widget.onPlaceSelected!(
         PlaceDetail(
           placeId: details.placeId,

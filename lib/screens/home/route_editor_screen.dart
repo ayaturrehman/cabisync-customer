@@ -198,6 +198,7 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
       _activeField = '';
     });
     _debounce?.cancel();
+    _searchSessions[field]?.reset();
     FocusScope.of(context).unfocus();
     _rememberPlace(place);
   }
