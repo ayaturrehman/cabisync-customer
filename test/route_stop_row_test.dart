@@ -16,6 +16,7 @@ void main() {
       ),
     );
     await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump(const Duration(seconds: 4));
     final initialFields = find.byType(TextField).evaluate().length;
     await tester.tap(find.text('+ Add stop'));
     await tester.pump(const Duration(milliseconds: 600));
