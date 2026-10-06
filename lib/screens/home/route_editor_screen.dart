@@ -28,8 +28,14 @@ class LocationItem {
 class RouteEditorScreen extends StatefulWidget {
   final Position? currentPosition;
   final PickupLookupSession? pickupLookup;
+  final PlacesSearchSession Function()? searchSessionFactory;
 
-  const RouteEditorScreen({super.key, this.currentPosition, this.pickupLookup});
+  const RouteEditorScreen({
+    super.key,
+    this.currentPosition,
+    this.pickupLookup,
+    this.searchSessionFactory,
+  });
 
   @override
   State<RouteEditorScreen> createState() => _RouteEditorScreenState();
@@ -53,11 +59,16 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
 
   // For handling suggestions
   List<PlacePrediction> _suggestions = [];
-  final _searchSessions = {
-    'pickup': PlacesSearchSession(),
-    'destination': PlacesSearchSession(),
-    'stop': PlacesSearchSession(),
+  late final _searchSessions = {
+    'pickup': widget.searchSessionFactory?.call() ?? PlacesSearchSession(),
+    'destination': widget.searchSessionFactory?.call() ?? PlacesSearchSession(),
+    'stop': widget.searchSessionFactory?.call() ?? PlacesSearchSession(),
   };
+  int _searchRevision = 0;
+  int _selectionRevision = 0;
+  bool _applyingPlace = false;
+  bool _selectingPlace = false;
+  String? _searchError;
   String _activeField = ''; // 'pickup' or 'destination'
   Timer? _debounce;
   final _recentStore = RecentPlacesStore();
@@ -96,63 +107,77 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
     super.dispose();
   }
 
-  void _onPickupTextChanged() {
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-    _debounce = Timer(const Duration(milliseconds: 500), () {
-      if (_pickupController.text.isNotEmpty && _pickupFocusNode.hasFocus) {
-        _searchPlaces(_pickupController.text, 'pickup');
-      } else {
-        setState(() {
-          _suggestions = [];
-          _activeField = '';
-        });
-      }
-    });
-  }
+  TextEditingController _controllerFor(String field) =>
+      field == 'stop'
+          ? _stopController
+          : field == 'pickup'
+          ? _pickupController
+          : _destinationController;
+  FocusNode _focusFor(String field) =>
+      field == 'stop'
+          ? _stopFocusNode
+          : field == 'pickup'
+          ? _pickupFocusNode
+          : _destinationFocusNode;
 
-  void _onDestinationTextChanged() {
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-    _debounce = Timer(const Duration(milliseconds: 500), () {
-      if (_destinationController.text.isNotEmpty &&
-          _destinationFocusNode.hasFocus) {
-        _searchPlaces(_destinationController.text, 'destination');
-      } else {
-        setState(() {
-          _suggestions = [];
-          _activeField = '';
-        });
-      }
-    });
-  }
-
-  void _onStopTextChanged() {
+  void _activateField(String field) {
     _debounce?.cancel();
+    _searchRevision++;
+    _selectionRevision++;
+    setState(() {
+      _activeField = field;
+      _suggestions = [];
+      _selectingPlace = false;
+      _searchError = null;
+    });
+  }
+
+  void _onPickupTextChanged() => _onFieldChanged('pickup');
+  void _onDestinationTextChanged() => _onFieldChanged('destination');
+  void _onStopTextChanged() => _onFieldChanged('stop');
+
+  void _onFieldChanged(String field) {
+    if (_applyingPlace || !mounted || !_focusFor(field).hasFocus) return;
+    _activateField(field);
+    setState(() {
+      if (field == 'pickup') _pickupLocation = null;
+      if (field == 'destination') _destinationLocation = null;
+      if (field == 'stop' && _editingStop != null) {
+        final index = _stops.indexOf(_editingStop!);
+        if (index >= 0) {
+          final draft = LocationItem(
+            id: _editingStop!.id,
+            address: _stopController.text,
+          );
+          _stops[index] = draft;
+          _editingStop = draft;
+        }
+      }
+    });
+    final revision = _searchRevision;
     _debounce = Timer(const Duration(milliseconds: 500), () {
-      if (!mounted || !_stopFocusNode.hasFocus) return;
-      _searchPlaces(_stopController.text, 'stop');
+      if (!mounted || revision != _searchRevision || !_focusFor(field).hasFocus)
+        return;
+      _searchPlaces(_controllerFor(field).text, field);
     });
   }
 
   Future<void> _searchPlaces(String query, String field) async {
-    setState(() {
-      _activeField = field;
-    });
-
+    final revision = _searchRevision;
     try {
       final results = await _searchSessions[field]!.predictions(query);
-      final controller =
-          field == 'stop'
-              ? _stopController
-              : field == 'pickup'
-              ? _pickupController
-              : _destinationController;
-      if (mounted && _activeField == field && controller.text == query) {
+      if (mounted &&
+          revision == _searchRevision &&
+          _activeField == field &&
+          _focusFor(field).hasFocus &&
+          _controllerFor(field).text == query) {
         setState(() => _suggestions = results);
       }
-    } catch (e) {
-      if (mounted) {
+    } catch (_) {
+      if (mounted && revision == _searchRevision && _activeField == field) {
         setState(() {
           _suggestions = [];
+          _searchError = 'Address search unavailable. Please try again.';
         });
       }
     }
@@ -193,9 +218,23 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
   Future<void> _selectSuggestion(PlacePrediction prediction) async {
     final field = _activeField;
     final editingStop = _editingStop;
-    final place = await _searchSessions[field]!.select(prediction.placeId);
-    if (!mounted || place == null || _activeField != field) return;
+    final session = _searchSessions[field];
+    if (session == null) return;
+    final revision = ++_selectionRevision;
+    setState(() => _selectingPlace = true);
+    final place = await session.select(prediction.placeId);
+    if (!mounted || revision != _selectionRevision || _activeField != field)
+      return;
+    setState(() => _selectingPlace = false);
     if (field == 'stop' && !identical(editingStop, _editingStop)) return;
+    if (place == null || !RecentPlacesStore.usable(place)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not load this address. Please try again.'),
+        ),
+      );
+      return;
+    }
     _applyPlace(place, field);
   }
 
@@ -208,6 +247,7 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
       lat: place.latitude,
       lng: place.longitude,
     );
+    _applyingPlace = true;
     setState(() {
       if (field == 'pickup') {
         _pickupLocation = location;
@@ -225,6 +265,9 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
       _suggestions = [];
       _activeField = '';
     });
+    _applyingPlace = false;
+    _searchRevision++;
+    _selectionRevision++;
     _debounce?.cancel();
     _searchSessions[field]?.reset();
     FocusScope.of(context).unfocus();
@@ -321,7 +364,10 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
   void _editStop(LocationItem stop) {
     _debounce?.cancel();
     _searchSessions['stop']!.reset();
+    _applyingPlace = true;
     _stopController.text = stop.address;
+    _applyingPlace = false;
+    _activateField('stop');
     setState(() {
       _editingStop = stop;
       _activeField = 'stop';
@@ -559,6 +605,13 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
                   ),
                 ),
 
+                if (_selectingPlace)
+                  const LinearProgressIndicator(minHeight: 2),
+                if (_searchError != null)
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(_searchError!, style: AppTextStyles.caption),
+                  ),
                 // Suggestions list or default content
                 Expanded(
                   child:
@@ -653,54 +706,49 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
                   style: AppTextStyles.caption,
                 ),
                 const SizedBox(height: 4),
-                isLoading
-                    ? const SizedBox(
-                      height: 20,
-                      child: Center(
-                        child: SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      ),
-                    )
-                    : TextField(
-                      controller: controller,
-                      focusNode: focusNode,
-                      style: AppTextStyles.body.copyWith(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      decoration: InputDecoration(
-                        hintText:
-                            isFirst
-                                ? controller.text.isEmpty
-                                    ? 'Pickup location'
-                                    : null
-                                : 'Where to?',
-                        hintStyle: AppTextStyles.body.copyWith(
-                          color: AppColors.textSecondary,
-                          fontSize: 16,
-                        ),
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        disabledBorder: InputBorder.none,
-                        errorBorder: InputBorder.none,
-                        focusedErrorBorder: InputBorder.none,
-                        isDense: true,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                      onTap: () {
-                        setState(() {
-                          _activeField = isFirst ? 'pickup' : 'destination';
-                          if (controller.text.trim().isEmpty) _suggestions = [];
-                        });
-                      },
+                TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  style: AppTextStyles.body.copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  decoration: InputDecoration(
+                    hintText:
+                        isFirst
+                            ? controller.text.isEmpty
+                                ? 'Pickup location'
+                                : null
+                            : 'Where to?',
+                    hintStyle: AppTextStyles.body.copyWith(
+                      color: AppColors.textSecondary,
+                      fontSize: 16,
                     ),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  onTap: () {
+                    _activateField(isFirst ? 'pickup' : 'destination');
+                  },
+                ),
               ],
             ),
           ),
+          if (isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8),
+              child: SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
           if (controller.text.isNotEmpty)
             SizedBox(
               width: 24,
@@ -708,6 +756,7 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
               child: IconButton(
                 icon: const Icon(Icons.close, size: 18),
                 onPressed: () {
+                  _activateField(isFirst ? 'pickup' : 'destination');
                   controller.clear();
                   setState(() {
                     if (isFirst) {
@@ -749,7 +798,7 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
                   focusedBorder: InputBorder.none,
                   filled: false,
                 ),
-                onTap: () => setState(() => _activeField = 'stop'),
+                onTap: () => _activateField('stop'),
               ),
             ),
             IconButton(
