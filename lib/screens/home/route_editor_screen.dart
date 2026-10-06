@@ -66,6 +66,7 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
   };
   int _searchRevision = 0;
   int _selectionRevision = 0;
+  final _lastTexts = <String, String>{};
   bool _applyingPlace = false;
   bool _selectingPlace = false;
   String? _searchError;
@@ -137,6 +138,9 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
   void _onStopTextChanged() => _onFieldChanged('stop');
 
   void _onFieldChanged(String field) {
+    final text = _controllerFor(field).text;
+    if (_lastTexts[field] == text) return;
+    _lastTexts[field] = text;
     if (_applyingPlace || !mounted || !_focusFor(field).hasFocus) return;
     _activateField(field);
     setState(() {
