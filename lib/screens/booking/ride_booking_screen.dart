@@ -22,6 +22,7 @@ class RideBookingScreen extends StatefulWidget {
   final double dropLat;
   final double dropLng;
   final DateTime? scheduledTime;
+  final List<LocationModel> stops;
 
   const RideBookingScreen({
     super.key,
@@ -32,6 +33,7 @@ class RideBookingScreen extends StatefulWidget {
     required this.dropLat,
     required this.dropLng,
     this.scheduledTime,
+    this.stops = const [],
   });
 
   @override
@@ -73,12 +75,15 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
         dropoffLat: widget.dropLat,
         dropoffLng: widget.dropLng,
         dropoffAddress: widget.destinationLocation,
+        stops: widget.stops.map((stop) => stop.toJson()).toList(),
+        scheduleType: widget.scheduledTime == null ? 'asap' : 'schedule',
         bookingTime:
             widget.scheduledTime != null
                 ? widget.scheduledTime!.toIso8601String()
                 : null,
       );
 
+      if (!mounted) return;
       setState(() {
         _fareEstimates = fares;
         _isLoadingFares = false;
@@ -91,6 +96,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
         }
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isLoadingFares = false;
         _errorMessage = e.toString().replaceAll('Exception: ', '');
@@ -163,6 +169,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
             address: widget.pickupLocation,
             type: 'pickup',
           ),
+          ...widget.stops,
           LocationModel(
             lat: widget.dropLat,
             lng: widget.dropLng,

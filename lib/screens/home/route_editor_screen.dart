@@ -1,3 +1,4 @@
+import '../../models/location_model.dart';
 import 'dart:async';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
@@ -315,10 +316,24 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
       return;
     }
 
-    String destination = _destinationLocation!.address;
-    if (_stops.isNotEmpty) {
-      destination += ' (${_stops.length} stop${_stops.length > 1 ? 's' : ''})';
+    final points = [_pickupLocation!, ..._stops, _destinationLocation!];
+    if (points.any(
+      (point) =>
+          point.lat == null ||
+          point.lng == null ||
+          !point.lat!.isFinite ||
+          !point.lng!.isFinite ||
+          point.lat!.abs() > 90 ||
+          point.lng!.abs() > 180 ||
+          (point.lat == 0 && point.lng == 0),
+    )) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select a valid address for each stop')),
+      );
+      return;
     }
+
+    final destination = _destinationLocation!.address;
 
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -331,6 +346,17 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
               dropLat: _destinationLocation!.lat ?? 0.0,
               dropLng: _destinationLocation!.lng ?? 0.0,
               scheduledTime: _scheduledDateTime,
+              stops:
+                  _stops
+                      .map(
+                        (stop) => LocationModel(
+                          lat: stop.lat!,
+                          lng: stop.lng!,
+                          address: stop.address,
+                          type: 'stop',
+                        ),
+                      )
+                      .toList(),
             ),
       ),
     );
