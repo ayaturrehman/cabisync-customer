@@ -1,3 +1,4 @@
+import '../../widgets/route_stop_row.dart';
 import '../../services/pickup_lookup_session.dart';
 import '../../services/places_search_session.dart';
 import '../../models/location_model.dart';
@@ -41,6 +42,9 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
   final FocusNode _pickupFocusNode = FocusNode();
   final FocusNode _destinationFocusNode = FocusNode();
 
+  final _stopController = TextEditingController();
+  final _stopFocusNode = FocusNode();
+  LocationItem? _editingStop;
   LocationItem? _pickupLocation;
   LocationItem? _destinationLocation;
   List<LocationItem> _stops = [];
@@ -52,6 +56,7 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
   final _searchSessions = {
     'pickup': PlacesSearchSession(),
     'destination': PlacesSearchSession(),
+    'stop': PlacesSearchSession(),
   };
   String _activeField = ''; // 'pickup' or 'destination'
   Timer? _debounce;
@@ -66,6 +71,7 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
     _loadRecentPlaces();
 
     // Listen to text changes for suggestions
+    _stopController.addListener(_onStopTextChanged);
     _pickupController.addListener(_onPickupTextChanged);
     _destinationController.addListener(_onDestinationTextChanged);
 
@@ -80,6 +86,8 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
     _debounce?.cancel();
     _pickupController.removeListener(_onPickupTextChanged);
     _destinationController.removeListener(_onDestinationTextChanged);
+    _stopController.dispose();
+    _stopFocusNode.dispose();
     _pickupController.dispose();
     _destinationController.dispose();
     _pickupFocusNode.dispose();
@@ -116,6 +124,14 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
     });
   }
 
+  void _onStopTextChanged() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      if (!mounted || !_stopFocusNode.hasFocus) return;
+      _searchPlaces(_stopController.text, 'stop');
+    });
+  }
+
   Future<void> _searchPlaces(String query, String field) async {
     setState(() {
       _activeField = field;
@@ -124,7 +140,11 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
     try {
       final results = await _searchSessions[field]!.predictions(query);
       final controller =
-          field == 'pickup' ? _pickupController : _destinationController;
+          field == 'stop'
+              ? _stopController
+              : field == 'pickup'
+              ? _pickupController
+              : _destinationController;
       if (mounted && _activeField == field && controller.text == query) {
         setState(() => _suggestions = results);
       }
@@ -171,13 +191,16 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
 
   Future<void> _selectSuggestion(PlacePrediction prediction) async {
     final field = _activeField;
+    final editingStop = _editingStop;
     final place = await _searchSessions[field]!.select(prediction.placeId);
     if (!mounted || place == null || _activeField != field) return;
+    if (field == 'stop' && !identical(editingStop, _editingStop)) return;
     _applyPlace(place, field);
   }
 
   void _applyPlace(PlaceDetails place, String field) {
     if (!RecentPlacesStore.usable(place)) return;
+    if (field == 'stop' && _editingStop == null) return;
     final location = LocationItem(
       id: place.placeId,
       address: place.formattedAddress,
@@ -189,6 +212,10 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
         _pickupLocation = location;
         _pickupController.text =
             place.name.isEmpty ? place.formattedAddress : place.name;
+      } else if (field == 'stop') {
+        final index = _stops.indexOf(_editingStop!);
+        if (index >= 0) _stops[index] = location;
+        _editingStop = null;
       } else {
         _destinationLocation = location;
         _destinationController.text =
@@ -281,39 +308,49 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
     }
   }
 
-  Future<void> _addStop() async {
-    // Show bottom sheet for adding a stop
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder:
-          (context) => Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: MediaQuery.of(context).size.height * 0.5,
-              ),
-              child: _StopInputSheet(
-                onStopAdded: (LocationItem stop) {
-                  setState(() {
-                    _stops.add(stop);
-                  });
-                },
-              ),
-            ),
-          ),
-    );
+  void _addStop() {
+    final unfinished = _stops.where((stop) => stop.lat == null);
+    final stop =
+        unfinished.isNotEmpty
+            ? unfinished.first
+            : LocationItem(
+              id: 'stop_${DateTime.now().microsecondsSinceEpoch}',
+              address: '',
+            );
+    if (!_stops.contains(stop)) setState(() => _stops.add(stop));
+    _editStop(stop);
+  }
+
+  void _editStop(LocationItem stop) {
+    _debounce?.cancel();
+    _searchSessions['stop']!.reset();
+    _stopController.text = stop.address;
+    setState(() {
+      _editingStop = stop;
+      _activeField = 'stop';
+      _suggestions = [];
+    });
+    _stopFocusNode.requestFocus();
+  }
+
+  void _moveStop(int index, int target) {
+    if (target < 0 || target >= _stops.length) return;
+    setState(() {
+      final stop = _stops.removeAt(index);
+      _stops.insert(target, stop);
+    });
   }
 
   void _removeStop(int index) {
     setState(() {
-      _stops.removeAt(index);
+      final removed = _stops.removeAt(index);
+      if (identical(removed, _editingStop)) {
+        _editingStop = null;
+        _activeField = '';
+        _suggestions = [];
+        _debounce?.cancel();
+        _stopFocusNode.unfocus();
+      }
     });
   }
 
@@ -413,113 +450,127 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
         ),
         centerTitle: false,
       ),
-      body: Column(
-        children: [
-          // Top action buttons
-          Container(
-            color: AppColors.white,
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.sm,
-            ),
-            child: Row(
+      body: LayoutBuilder(
+        builder:
+            (context, constraints) => Column(
               children: [
-                _buildTopButton(
-                  icon: Icons.access_time,
-                  label:
-                      _scheduledDateTime == null
-                          ? 'Pick-up now'
-                          : _formatDateTime(_scheduledDateTime!),
-                  onTap: _selectScheduleTime,
+                // Top action buttons
+                Container(
+                  color: AppColors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm,
+                  ),
+                  child: Row(
+                    children: [
+                      _buildTopButton(
+                        icon: Icons.access_time,
+                        label:
+                            _scheduledDateTime == null
+                                ? 'Now'
+                                : _formatDateTime(_scheduledDateTime!),
+                        onTap: _selectScheduleTime,
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      InkWell(
+                        onTap: _addStop,
+                        borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.md,
+                            vertical: AppSpacing.sm,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(
+                              AppBorderRadius.lg,
+                            ),
+                          ),
+                          child: const Text(
+                            '+ Add stop',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(width: AppSpacing.sm),
-                InkWell(
-                  onTap: _addStop,
-                  borderRadius: BorderRadius.circular(AppBorderRadius.lg),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md,
-                      vertical: AppSpacing.sm,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(AppBorderRadius.lg),
-                    ),
-                    child: const Text(
-                      '+ Add stop',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+
+                const SizedBox(height: AppSpacing.sm),
+
+                // Input fields container
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: constraints.maxHeight * .58,
+                  ),
+                  child: SingleChildScrollView(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+                      ),
+                      child: Column(
+                        children: [
+                          _buildInputField(
+                            controller: _pickupController,
+                            focusNode: _pickupFocusNode,
+                            icon: Icons.circle,
+                            iconColor: AppColors.black,
+                            isLoading: _isLoadingPickup,
+                            isFirst: true,
+                          ),
+                          // Stops between pickup and destination
+                          if (_stops.isNotEmpty) ...[
+                            ...List.generate(_stops.length, (index) {
+                              return Column(
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 52),
+                                    child: Divider(
+                                      height: 1,
+                                      color: AppColors.border.withOpacity(0.3),
+                                    ),
+                                  ),
+                                  _buildStopInputField(_stops[index], index),
+                                ],
+                              );
+                            }),
+                          ],
+                          Padding(
+                            padding: const EdgeInsets.only(left: 52),
+                            child: Divider(
+                              height: 1,
+                              color: AppColors.border.withOpacity(0.3),
+                            ),
+                          ),
+                          _buildInputField(
+                            controller: _destinationController,
+                            focusNode: _destinationFocusNode,
+                            icon: Icons.location_on,
+                            iconColor: AppColors.black,
+                            isFirst: false,
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ),
-              ],
-            ),
-          ),
 
-          const SizedBox(height: AppSpacing.sm),
-
-          // Input fields container
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(AppBorderRadius.sm),
-            ),
-            child: Column(
-              children: [
-                _buildInputField(
-                  controller: _pickupController,
-                  focusNode: _pickupFocusNode,
-                  icon: Icons.circle,
-                  iconColor: AppColors.black,
-                  isLoading: _isLoadingPickup,
-                  isFirst: true,
-                ),
-                // Stops between pickup and destination
-                if (_stops.isNotEmpty) ...[
-                  ...List.generate(_stops.length, (index) {
-                    return Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(left: 52),
-                          child: Divider(
-                            height: 1,
-                            color: AppColors.border.withOpacity(0.3),
-                          ),
-                        ),
-                        _buildStopInputField(_stops[index], index),
-                      ],
-                    );
-                  }),
-                ],
-                Padding(
-                  padding: const EdgeInsets.only(left: 52),
-                  child: Divider(
-                    height: 1,
-                    color: AppColors.border.withOpacity(0.3),
-                  ),
-                ),
-                _buildInputField(
-                  controller: _destinationController,
-                  focusNode: _destinationFocusNode,
-                  icon: Icons.location_on,
-                  iconColor: AppColors.black,
-                  isFirst: false,
+                // Suggestions list or default content
+                Expanded(
+                  child:
+                      _suggestions.isNotEmpty
+                          ? _buildSuggestionsList()
+                          : _buildDefaultContent(),
                 ),
               ],
             ),
-          ),
-
-          // Suggestions list or default content
-          Expanded(
-            child:
-                _suggestions.isNotEmpty
-                    ? _buildSuggestionsList()
-                    : _buildDefaultContent(),
-          ),
-        ],
       ),
 
       bottomNavigationBar: Container(
@@ -528,7 +579,7 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
         child: SafeArea(
           top: false,
           child: CustomButton(
-            text: 'Continue',
+            text: 'See rides',
             onPressed: _findRoute,
             fullWidth: true,
           ),
@@ -682,52 +733,48 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
   }
 
   Widget _buildStopInputField(LocationItem stop, int index) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 20,
-            height: 20,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                '${index + 1}',
-                style: AppTextStyles.caption.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 10,
+    if (identical(stop, _editingStop)) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 4, 8),
+        child: Row(
+          children: [
+            Text('${index + 1}'),
+            const SizedBox(width: 16),
+            Expanded(
+              child: TextField(
+                controller: _stopController,
+                focusNode: _stopFocusNode,
+                decoration: InputDecoration(
+                  labelText: 'Stop ${index + 1}',
+                  hintText: 'Search address or place',
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  filled: false,
                 ),
+                onTap: () => setState(() => _activeField = 'stop'),
               ),
             ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Text(
-              stop.address,
-              style: AppTextStyles.body.copyWith(fontSize: 16),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          SizedBox(
-            width: 24,
-            height: 24,
-            child: IconButton(
-              icon: const Icon(Icons.close, size: 18),
-              color: AppColors.textSecondary,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
+            IconButton(
+              tooltip: 'Remove stop ${index + 1}',
               onPressed: () => _removeStop(index),
+              icon: const Icon(Icons.close, size: 18),
             ),
-          ),
-        ],
+          ],
+        ),
+      );
+    }
+    return InkWell(
+      onTap: () => _editStop(stop),
+      child: RouteStopRow(
+        address: stop.address,
+        number: index + 1,
+        onMoveUp: index == 0 ? null : () => _moveStop(index, index - 1),
+        onMoveDown:
+            index == _stops.length - 1
+                ? null
+                : () => _moveStop(index, index + 1),
+        onRemove: () => _removeStop(index),
       ),
     );
   }
@@ -810,12 +857,25 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
 
   Widget _buildDefaultContent() {
     final pickup = _pickupFocusNode.hasFocus;
-    final controller = pickup ? _pickupController : _destinationController;
+    final stop = _stopFocusNode.hasFocus && _editingStop != null;
+    final controller =
+        stop
+            ? _stopController
+            : pickup
+            ? _pickupController
+            : _destinationController;
     if (controller.text.trim().isEmpty && _recentPlaces.isNotEmpty) {
       return RecentPlacesList(
         places: _recentPlaces,
         onSelected:
-            (place) => _applyPlace(place, pickup ? 'pickup' : 'destination'),
+            (place) => _applyPlace(
+              place,
+              stop
+                  ? 'stop'
+                  : pickup
+                  ? 'pickup'
+                  : 'destination',
+            ),
       );
     }
     return Container(
@@ -828,150 +888,16 @@ class _RouteEditorScreenState extends State<RouteEditorScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Where are you heading?', style: AppTextStyles.heading3),
+                Text('Choose your destination', style: AppTextStyles.heading3),
                 SizedBox(height: 8),
                 Text(
-                  'Search an address or place. Review your pickup before continuing.',
+                  'Search or choose a recent place.',
                   style: AppTextStyles.bodySecondary,
                 ),
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// Bottom sheet for adding a stop
-class _StopInputSheet extends StatefulWidget {
-  final Function(LocationItem) onStopAdded;
-
-  const _StopInputSheet({required this.onStopAdded});
-
-  @override
-  State<_StopInputSheet> createState() => _StopInputSheetState();
-}
-
-class _StopInputSheetState extends State<_StopInputSheet> {
-  final TextEditingController _controller = TextEditingController();
-  final FocusNode _focusNode = FocusNode();
-  List<PlacePrediction> _suggestions = [];
-  final _placesSession = PlacesSearchSession();
-  Timer? _debounce;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller.addListener(_onTextChanged);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _focusNode.requestFocus();
-    });
-  }
-
-  @override
-  void dispose() {
-    _debounce?.cancel();
-    _controller.dispose();
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  void _onTextChanged() {
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-    _debounce = Timer(const Duration(milliseconds: 500), () {
-      if (_controller.text.isNotEmpty) {
-        _searchPlaces(_controller.text);
-      } else {
-        setState(() {
-          _suggestions = [];
-        });
-      }
-    });
-  }
-
-  Future<void> _searchPlaces(String query) async {
-    try {
-      final results = await _placesSession.predictions(query);
-      if (mounted && _controller.text == query) {
-        setState(() {
-          _suggestions = results;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _suggestions = [];
-        });
-      }
-    }
-  }
-
-  Future<void> _selectPlace(PlacePrediction prediction) async {
-    final placeDetails = await _placesSession.select(prediction.placeId);
-
-    if (placeDetails != null && mounted) {
-      widget.onStopAdded(
-        LocationItem(
-          id: placeDetails.placeId,
-          address: placeDetails.formattedAddress,
-          lat: placeDetails.latitude,
-          lng: placeDetails.longitude,
-        ),
-      );
-      Navigator.of(context).pop();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Add Stop',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            TextField(
-              controller: _controller,
-              focusNode: _focusNode,
-              decoration: InputDecoration(
-                hintText: 'Enter stop location',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppBorderRadius.md),
-                ),
-                contentPadding: const EdgeInsets.all(AppSpacing.md),
-              ),
-            ),
-            if (_suggestions.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.sm),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 300),
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: _suggestions.length,
-                  itemBuilder: (context, index) {
-                    final suggestion = _suggestions[index];
-                    return ListTile(
-                      leading: const Icon(Icons.location_on),
-                      title: Text(suggestion.mainText),
-                      subtitle: Text(suggestion.secondaryText),
-                      onTap: () => _selectPlace(suggestion),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ],
-        ),
       ),
     );
   }
