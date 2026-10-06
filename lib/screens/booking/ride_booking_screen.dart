@@ -1,3 +1,4 @@
+import '../../widgets/journey_map.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
@@ -219,6 +220,26 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
       appBar: const CustomAppBar(title: 'Choose a ride'),
       body: Column(
         children: [
+          SizedBox(
+            height: MediaQuery.sizeOf(context).height * .27,
+            child: JourneyMap(
+              locations: [
+                LocationModel(
+                  lat: widget.pickupLat,
+                  lng: widget.pickupLng,
+                  address: widget.pickupLocation,
+                  type: 'pickup',
+                ),
+                ...widget.stops,
+                LocationModel(
+                  lat: widget.dropLat,
+                  lng: widget.dropLng,
+                  address: widget.destinationLocation,
+                  type: 'dropoff',
+                ),
+              ],
+            ),
+          ),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(AppSpacing.md),
@@ -241,7 +262,14 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
                       .animate()
                       .fadeIn(duration: AppAnimations.fast)
                       .slideY(begin: -0.1, end: 0),
-                  const SizedBox(height: AppSpacing.lg),
+                  if (widget.stops.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      '${widget.stops.length} stops',
+                      style: AppTextStyles.caption,
+                    ),
+                  ],
+                  const SizedBox(height: AppSpacing.md),
                   Text(
                     'Available vehicles',
                     style: AppTextStyles.heading3,
@@ -320,12 +348,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
           ),
           Container(
             padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: const BoxDecoration(
-              color: AppColors.white,
-              border: Border(
-                top: BorderSide(color: AppColors.border, width: 1),
-              ),
-            ),
+            decoration: const BoxDecoration(color: AppColors.white),
             child: SafeArea(
               top: false,
               child: CustomButton(
