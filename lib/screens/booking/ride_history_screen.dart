@@ -56,28 +56,29 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: AppColors.surface,
       appBar: CustomAppBar(
-        title: 'Ride History',
+        title: 'Trips',
         showBackButton: Navigator.of(context).canPop(),
       ),
-      body: _isLoading
-          ? ListView.builder(
-              itemCount: 5,
-              padding: const EdgeInsets.all(AppSpacing.md),
-              itemBuilder: (context, index) => const ShimmerCard(),
-            )
-          : _errorMessage != null
+      body:
+          _isLoading
+              ? ListView.builder(
+                itemCount: 5,
+                padding: const EdgeInsets.all(AppSpacing.md),
+                itemBuilder: (context, index) => const ShimmerCard(),
+              )
+              : _errorMessage != null
               ? _buildErrorState()
               : _rides.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.builder(
-                      itemCount: _rides.length,
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      itemBuilder: (context, index) {
-                        return _buildRideCard(_rides[index], index);
-                      },
-                    ),
+              ? _buildEmptyState()
+              : ListView.builder(
+                itemCount: _rides.length,
+                padding: const EdgeInsets.all(AppSpacing.md),
+                itemBuilder: (context, index) {
+                  return _buildRideCard(_rides[index], index);
+                },
+              ),
     );
   }
 
@@ -87,18 +88,18 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(AppBorderRadius.full),
-            ),
-            child: const Icon(
-              Icons.history,
-              size: 48,
-              color: AppColors.accent,
-            ),
-          )
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppBorderRadius.full),
+                ),
+                child: const Icon(
+                  Icons.history,
+                  size: 48,
+                  color: AppColors.accent,
+                ),
+              )
               .animate()
               .fadeIn(duration: AppAnimations.medium)
               .scale(duration: AppAnimations.medium),
@@ -106,19 +107,13 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
           Text(
             'No rides yet',
             style: AppTextStyles.heading3,
-          )
-              .animate()
-              .fadeIn(delay: 200.ms)
-              .slideY(begin: 0.2, end: 0),
+          ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
           const SizedBox(height: AppSpacing.sm),
           Text(
             'Your ride history will appear here',
             style: AppTextStyles.bodySecondary,
             textAlign: TextAlign.center,
-          )
-              .animate()
-              .fadeIn(delay: 400.ms)
-              .slideY(begin: 0.2, end: 0),
+          ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0),
         ],
       ),
     );
@@ -168,65 +163,109 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
       }
     }
 
-    final priceLabel = ride.fare != null ? '£${ride.fare!.toStringAsFixed(2)}' : '';
-    final statusLabel = ride.status[0].toUpperCase() + ride.status.substring(1).replaceAll('_', ' ');
+    final priceLabel =
+        ride.fare != null ? '£${ride.fare!.toStringAsFixed(2)}' : '';
+    final statusLabel = ride.statusLabel;
 
     return CustomCard(
-      margin: const EdgeInsets.only(bottom: AppSpacing.md),
-      onTap: () {},
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+          margin: const EdgeInsets.only(bottom: AppSpacing.md),
+          onTap:
+              () => showModalBottomSheet<void>(
+                context: context,
+                isScrollControlled: true,
+                showDragHandle: true,
+                builder:
+                    (context) => SafeArea(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('Trip details', style: AppTextStyles.heading2),
+                            const SizedBox(height: 8),
+                            Text(
+                              '$dateLabel · $statusLabel',
+                              style: AppTextStyles.caption,
+                            ),
+                            const SizedBox(height: 24),
+                            RouteVisualization(
+                              pickup: ride.pickupAddress,
+                              dropoff: ride.dropoffAddress,
+                            ),
+                            if (priceLabel.isNotEmpty) ...[
+                              const SizedBox(height: 24),
+                              Text(
+                                'Fare $priceLabel',
+                                style: AppTextStyles.heading3,
+                              ),
+                            ],
+                            const SizedBox(height: 24),
+                            CustomButton(
+                              text: 'Done',
+                              fullWidth: true,
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+              ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.sm),
-                decoration: BoxDecoration(
-                  color: AppColors.black,
-                  borderRadius: BorderRadius.circular(AppBorderRadius.sm),
-                ),
-                child: const Icon(
-                  Icons.local_taxi,
-                  color: AppColors.white,
-                  size: 20,
-                ),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.sm),
+                    decoration: BoxDecoration(
+                      color: AppColors.black,
+                      borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+                    ),
+                    child: const Icon(
+                      Icons.local_taxi,
+                      color: AppColors.white,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(dateLabel, style: AppTextStyles.caption),
+                        Text(priceLabel, style: AppTextStyles.heading3),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm,
+                      vertical: AppSpacing.xs,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+                    ),
+                    child: Text(
+                      statusLabel,
+                      style: AppTextStyles.caption.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(dateLabel, style: AppTextStyles.caption),
-                    Text(priceLabel, style: AppTextStyles.heading3),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.sm,
-                  vertical: AppSpacing.xs,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(AppBorderRadius.sm),
-                ),
-                child: Text(
-                  statusLabel,
-                  style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w600),
-                ),
+              const SizedBox(height: AppSpacing.md),
+              const Divider(height: 1),
+              const SizedBox(height: AppSpacing.md),
+              RouteVisualization(
+                pickup: ride.pickupAddress,
+                dropoff: ride.dropoffAddress,
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
-          const Divider(height: 1),
-          const SizedBox(height: AppSpacing.md),
-          RouteVisualization(
-            pickup: ride.pickupAddress,
-            dropoff: ride.dropoffAddress,
-          ),
-        ],
-      ),
-    )
+        )
         .animate()
         .fadeIn(delay: (index * 100).ms, duration: AppAnimations.fast)
         .slideY(begin: 0.1, end: 0);
