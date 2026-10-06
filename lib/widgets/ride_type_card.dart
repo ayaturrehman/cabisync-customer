@@ -30,12 +30,16 @@ class RideTypeCard extends StatelessWidget {
         curve: AppAnimations.defaultCurve,
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.surface : AppColors.white,
+          color: isSelected ? AppColors.brand : AppColors.white,
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 32, color: AppColors.black),
+            Icon(
+              icon,
+              size: 32,
+              color: isSelected ? Colors.white : AppColors.black,
+            ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
@@ -44,27 +48,24 @@ class RideTypeCard extends StatelessWidget {
                   Text(
                     name,
                     style: AppTextStyles.heading3.copyWith(
-                      color: AppColors.black,
+                      color: isSelected ? Colors.white : AppColors.black,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
                     'Journey · $estimatedTime',
                     style: AppTextStyles.caption.copyWith(
-                      color: AppColors.textSecondary,
+                      color:
+                          isSelected ? Colors.white70 : AppColors.textSecondary,
                     ),
                   ),
                 ],
               ),
             ),
-            if (isSelected) ...[
-              const Icon(Icons.check_circle, size: 20, color: AppColors.brand),
-              const SizedBox(width: 12),
-            ],
             Text(
               price,
               style: AppTextStyles.heading3.copyWith(
-                color: AppColors.black,
+                color: isSelected ? Colors.white : AppColors.black,
                 fontWeight: FontWeight.bold,
               ),
             ),

@@ -6,7 +6,6 @@ import '../../config/theme.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/ride_type_card.dart';
 import '../../widgets/custom_button.dart';
-import '../../widgets/route_visualization.dart';
 import '../../models/fare_estimate.dart';
 import '../../services/fare_service.dart';
 import '../../services/api_service.dart';
@@ -221,7 +220,7 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
       body: Column(
         children: [
           SizedBox(
-            height: MediaQuery.sizeOf(context).height * .27,
+            height: MediaQuery.sizeOf(context).height * .34,
             child: JourneyMap(
               locations: [
                 LocationModel(
@@ -246,30 +245,6 @@ class _RideBookingScreenState extends State<RideBookingScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Container(
-                        padding: const EdgeInsets.all(AppSpacing.md),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(
-                            AppBorderRadius.md,
-                          ),
-                        ),
-                        child: RouteVisualization(
-                          pickup: widget.pickupLocation,
-                          dropoff: widget.destinationLocation,
-                        ),
-                      )
-                      .animate()
-                      .fadeIn(duration: AppAnimations.fast)
-                      .slideY(begin: -0.1, end: 0),
-                  if (widget.stops.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      '${widget.stops.length} stops',
-                      style: AppTextStyles.caption,
-                    ),
-                  ],
-                  const SizedBox(height: AppSpacing.md),
                   Text(
                     'Available vehicles',
                     style: AppTextStyles.heading3,
