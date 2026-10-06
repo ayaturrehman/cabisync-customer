@@ -57,9 +57,9 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.white,
-      appBar: const CustomAppBar(
+      appBar: CustomAppBar(
         title: 'Ride History',
-        showBackButton: false,
+        showBackButton: Navigator.of(context).canPop(),
       ),
       body: _isLoading
           ? ListView.builder(
